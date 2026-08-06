@@ -1,0 +1,186 @@
+TPers_prj/
+├── .env
+├── .gitignore
+├── requirements.txt
+├── docker-compose.yml
+├── start.sh
+├── demo_run.py
+├── kientruc.txt
+├── mistakes.md
+├── HUONG_DAN_XAY_DUNG.md
+├── HUONG_DAN_XAY_DUNG.pdf
+├── SPEC.pdf
+│
+├── agents/
+│   ├── alert_report.py
+│   ├── graph_aml.py
+│   ├── kyc_verification.py
+│   ├── regulation_rag.py
+│   ├── train_classifier.py
+│   └── transaction_classifier.py
+│
+├── api/
+│   └── main.py
+│
+├── core/
+│   ├── config.py
+│   ├── graph_builder.py
+│   ├── privacy_layer.py
+│   └── state.py
+│
+├── data/
+│   ├── legal_docs/
+│   │   ├── fatf_recommendations.txt
+│   │   ├── thong_tu_27_2025.txt
+│   │   └── thong_tu_32_2026.txt
+│   ├── mock/
+│   │   └── customers.json
+│   ├── processed/
+│   │   └── sample_ofac_wallet.txt
+│   └── raw/
+│       ├── elliptic/
+│       │   ├── elliptic_clean.csv
+│       │   ├── elliptic_test.csv
+│       │   ├── elliptic_txs_classes.csv
+│       │   ├── elliptic_txs_edgelist.csv
+│       │   └── elliptic_txs_features.csv
+│       ├── etherscan/
+│       │   ├── sample_txs.json
+│       │   └── sample_wallet_txs.json
+│       └── ofac/
+│           └── sdn.xml
+│
+├── db/
+│   ├── chroma_db/
+│   │   └── chroma.sqlite3
+│   ├── neo4j_setup.py
+│   └── vector_db.py
+│
+├── frontend_html/
+│   ├── app.js
+│   ├── index.html
+│   └── styles.css
+│
+├── models/
+│   └── xgboost_aml.pkl
+│
+├── neo4j/
+│   ├── data/
+│   ├── import/
+│   ├── logs/
+│   └── plugins/
+│
+├── pictures/
+│   ├── Kq Đánh giá mô hình.png
+│   ├── Screenshot 2026-07-25 144235.png
+│   ├── Screenshot 2026-08-06 113301.png
+│   ├── Screenshot 2026-08-06 113541.png
+│   ├── Screenshot 2026-08-06 113555.png
+│   └── Screenshot 2026-08-06 113611.png
+│
+├── reports/
+│   └── output/
+│       └── STR_REPORT_0xDEMO_ALERT_REPORT.docx
+│
+├── scripts/
+│   ├── 00_healthcheck.py
+│   ├── 01_check_ofac.py
+│   ├── 02_fetch_etherscan_sample.py
+│   ├── 03_load_elliptic.py
+│   └── 05_gen_mock_data.py
+│
+├── tests/
+│   ├── evaluate_model.py
+│   ├── test_classifier.py
+│   ├── test_privacy.py
+│   └── test_state.py
+│
+├── ui/
+│   └── app.py
+│
+└── chroma/
+    (trống)
+
+
+
+
+
+
+
+├── DỮ LIỆU THÔ (Elliptic Bitcoin Dataset + OFAC SDN + Etherscan API) ──> PRIVACY LAYER
+│                                                                          (SHA-256 Masking PII, On-premise)
+│                                                                              │
+│                                                                              ▼
+│                                                            NẠP VÀO NEO4J (Đồ thị ví-đến-ví)
+│                                                            + CHROMADB (Vector luật: TT27 + TT32)
+│
+├── BẢNG WALLET PROFILES (Đặc trưng tĩnh của Ví Gửi/Nhận)
+│   ├── Categorical: wallet_address, ofac_match_flag (từ so khớp mờ SDN)
+│   └── Continuous: tx_frequency, avg_amount_vnd, gas_fee (Lọc theo ngưỡng TT27: 500tr VND)
+│
+├── BẢNG CUSTOMER PROFILES (Đặc trưng định danh — CHỈ bản đã băm)
+│   ├── Categorical: hashed_id_number, hashed_account_number
+│   └── Continuous: (không lưu điểm liên tục nhạy cảm ở bảng này — tránh tái định danh)
+│
+└── BẢNG PREDICTIONS (Đầu ra của Batch AI)
+    └── Continuous: risk_score_classifier (Xác suất illicit từ mô hình XGBoost, huấn luyện temporal split trên Elliptic)
+
+
+├── NHÁNH 1: TRANSACTION ASSISTANT (XGBoost)          ├── NHÁNH 2: KYC ASSISTANT (Fuzzy Matching)
+│   ├── Input: [amount_vnd, gas_fee, tx_frequency]    │   ├── Input: [wallet_from, wallet_to]
+│   │                                                 │   │
+│   ├── Đặc trưng giao dịch thô (Continuous)          │   ├── So khớp mờ (Levenshtein)
+│   │   └── scale_pos_weight bù mất cân bằng lớp      │   │   └── Đối chiếu OFAC SDN (sdn.xml,
+│   │                                                 │   │       parse bằng iterparse chống OOM)
+│   ├── Khối XGBoost:                                 │   ├── Gom cụm ví (Wallet Clustering)
+│   │   ├── n_estimators=200, max_depth=6             │   │   └── Phát hiện tên giả / gom nhóm
+│   │   └── Đánh giá: Recall, F1, AUC-PR              │   │
+│   │       (KHÔNG dùng AUC-ROC — dữ liệu lệch 2%)    │   │
+│   │                                                 │   │
+│   └── OUTPUT: risk_score_classifier (0–1)           │   └── OUTPUT: kyc_flags [list]
+│                                                     │
+└───────────────────────────┬─────────────────────────┘
+                            │
+                            ▼
+├── ĐIỂM KHỚP NỐI ĐỒ THỊ (Graph Assistant — Neo4j GDS)
+│   ├── Personalized PageRank (PPR): lan truyền rủi ro từ ví đen OFAC qua nhiều hop.
+│   └── Louvain Community Detection: phát hiện "đảo gian lận" (fraud rings), tối đa Modularity Q.
+│       └── OUTPUT: graph_risk_score + community_id
+│
+├── INPUT: risk_score_classifier + kyc_flags + graph_risk_score (Từ 3 tầng trên chuyển sang)
+│   └── Dữ liệu: Ghép cùng đặc trưng cấu trúc dòng tiền (PPR score, community ID).
+│
+├── BƯỚC CHUẨN HÓA & TỔNG HỢP (RAG Assistant)
+│   ├── Mã hóa đặc trưng cấu trúc thành ngữ cảnh → truy vấn ChromaDB.
+│   └── Trích dẫn pháp lý: Thông tư 27 (ngưỡng/thời hạn STR) + Thông tư 32 (thuế TNCN 0.1%).
+│
+├── LÕI TÍNH ĐIỂM (Report Assistant — Weighted Risk Score)
+│   ├── Final Score = 0.2×Classifier + 0.3×KYC + 0.5×Graph (chuẩn hóa 0–1 trước khi cộng).
+│   ├── Ngưỡng ≥ 0.7 → tự động biên soạn STR (Mẫu 04, python-docx).
+│   └── Xử lý dừng: LangGraph Interrupt Checkpoint (chờ chuyên viên duyệt).
+│
+└───────────────────────────┬─────────────────────────┘
+                            │
+                            ▼
+├── ĐIỂM DUYỆT CUỐI CÙNG (Human-in-the-loop)
+│   └── KẾT QUẢ: Approve → Ký số HSM (mô tả kiến trúc) → Ghi bảng `final_alerts`.
+│
+├── GIẢ LẬP GIAO DỊCH (demo_run.py)
+│   └── Bắn luồng JSON theo lô: {"tx_hash": "...", "wallet_from": "...", "amount_vnd": ...}
+│
+├── ONLINE STATE (LangGraph AMLState — trong tiến trình, chưa dùng Redis)
+│   └── Lưu tạm state giữa các node trong 1 phiên điều tra (không cần độ trễ <1ms như realtime feed).
+│
+├── GIAO TIẾP HỆ THỐNG (FastAPI Gateway — API-as-a-Service)
+│   ├── Trộn dữ liệu: Wallet Profile (Neo4j) + Risk Score (XGBoost) + OFAC flags.
+│   ├── Đẩy qua luồng suy luận: Transaction/KYC (song song) → Graph → RAG → Report.
+│   └── Trả kết quả JSON tra cứu ví (screening) cho VASP/ví điện tử dùng gói pay-as-you-go.
+│
+└── GIAO DIỆN QUẢN TRỊ (Streamlit Dashboard)
+    ├── Tab 1: Sơ đồ dòng tiền đa hop (Neo4j Graph View).
+    ├── Tab 2: Danh sách cảnh báo theo Final Risk Score, sắp xếp giảm dần.
+    └── Tab 3: Bản dự thảo STR chờ duyệt — nút Approve/Reject.
+
+
+
+docker run -d --name neo4j-aml -p 7474:7474 -p 7687:7687 -v "${HOME}\neo4j-aml\data:/data" -v "${HOME}\neo4j-aml\logs:/logs" --env NEO4J_AUTH=neo4j/123456789 --env NEO4J_PLUGINS='["graph-data-science"]' neo4j:latest

@@ -1,0 +1,104 @@
+THÔNG TƯ SỐ 27/2025/TT-NHNN
+QUY ĐỊNH VỀ PHÒNG, CHỐNG RỬA TIỀN TRONG LĨNH VỰC NGÂN HÀNG
+
+(Trích xuất các điều khoản liên quan đến CTR/STR và tài sản mã hóa — dùng cho demo PoC)
+
+===================================================================
+
+CHƯƠNG I. QUY ĐỊNH CHUNG
+
+Điều 1. Phạm vi điều chỉnh
+Thông tư này quy định chi tiết một số điều của Luật Phòng, chống rửa tiền về:
+a) Nhận biết và xác minh thông tin khách hàng (KYC);
+b) Phân loại khách hàng theo mức độ rủi ro;
+c) Báo cáo giao dịch đáng ngờ (STR) và giao dịch có giá trị lớn (CTR);
+d) Áp dụng đối với giao dịch liên quan đến tài sản mã hóa (crypto asset).
+
+Điều 3. Giải thích từ ngữ
+- "Giao dịch có giá trị lớn" (CTR - Currency Transaction Report): Giao dịch có giá trị từ 400 triệu đồng trở lên hoặc tương đương bằng ngoại tệ, tài sản mã hóa.
+- "Giao dịch đáng ngờ" (STR - Suspicious Transaction Report): Giao dịch có một hoặc nhiều dấu hiệu nghi ngờ rửa tiền, tài trợ khủng bố.
+- "Tài sản mã hóa" (Crypto asset): Bao gồm tiền mã hóa (cryptocurrency), token, stablecoin và các dạng tài sản kỹ thuật số khác được giao dịch trên blockchain.
+
+===================================================================
+
+CHƯƠNG II. NHẬN BIẾT KHÁCH HÀNG (KYC)
+
+Điều 5. Nhận biết khách hàng lần đầu
+1. Tổ chức tín dụng phải thu thập và xác minh thông tin nhận dạng khách hàng trước khi thiết lập mối quan hệ kinh doanh hoặc thực hiện giao dịch, bao gồm:
+   a) Họ tên đầy đủ, ngày sinh, quốc tịch;
+   b) Số CCCD/CMND/Hộ chiếu;
+   c) Địa chỉ cư trú;
+   d) Địa chỉ ví crypto (wallet address) nếu giao dịch liên quan tài sản mã hóa.
+
+Điều 7. Đối chiếu danh sách đen
+1. Tổ chức tín dụng phải đối chiếu thông tin khách hàng với:
+   a) Danh sách cấm vận của OFAC (Office of Foreign Assets Control);
+   b) Danh sách trừng phạt của Liên Hợp Quốc;
+   c) Danh sách cảnh báo của NHNN Việt Nam;
+   d) Danh sách nội bộ của tổ chức tín dụng.
+2. Việc đối chiếu phải thực hiện cả matching chính xác (exact match) và matching mờ (fuzzy match) với ngưỡng tương đồng tối thiểu 85%.
+
+===================================================================
+
+CHƯƠNG III. BÁO CÁO GIAO DỊCH
+
+Điều 10. Báo cáo giao dịch có giá trị lớn (CTR)
+1. Tổ chức tín dụng phải báo cáo NHNN khi phát hiện giao dịch:
+   a) Giao dịch tiền mặt có giá trị từ 400.000.000 đồng trở lên;
+   b) Giao dịch chuyển tiền điện tử có giá trị từ 500.000.000 đồng trở lên;
+   c) Giao dịch tài sản mã hóa (crypto) có giá trị quy đổi từ 400.000.000 đồng trở lên.
+2. Thời hạn báo cáo: Trong vòng 24 giờ kể từ khi phát hiện giao dịch.
+
+Điều 11. Báo cáo giao dịch đáng ngờ (STR)
+1. Tổ chức tín dụng phải lập và gửi STR khi phát hiện giao dịch có một hoặc nhiều dấu hiệu sau:
+   a) Giao dịch phức tạp, bất thường, không phù hợp với hoạt động kinh doanh thông thường;
+   b) Giao dịch liên quan đến cá nhân hoặc tổ chức nằm trong danh sách cấm vận quốc tế;
+   c) Giao dịch chia nhỏ (structuring) nhằm tránh ngưỡng báo cáo CTR;
+   d) Giao dịch crypto qua nhiều ví trung gian (layering) trong thời gian ngắn;
+   e) Giao dịch từ/đến ví tự quản (self-hosted wallet) không có thông tin KYC;
+   f) Giao dịch vào ban đêm (23h-5h) với giá trị bất thường.
+2. Mẫu báo cáo STR theo Mẫu số 04 ban hành kèm theo Thông tư này.
+3. Thời hạn gửi báo cáo: Trong vòng 24 giờ kể từ khi phát hiện dấu hiệu đáng ngờ.
+
+Điều 12. Dấu hiệu đáng ngờ liên quan đến tài sản mã hóa
+1. Giao dịch từ/đến địa chỉ ví nằm trong danh sách trừng phạt OFAC;
+2. Giao dịch có cấu trúc fan-out (phân tách) hoặc fan-in (tập trung) bất thường;
+3. Giao dịch tạo vòng lặp dòng tiền khép kín (circular transactions);
+4. Sử dụng mixer/tumbler để che dấu nguồn gốc tài sản;
+5. Chuyển đổi nhanh giữa nhiều loại tài sản mã hóa trong thời gian ngắn;
+6. Giao dịch có giá trị lớn từ ví mới tạo (dưới 30 ngày).
+
+===================================================================
+
+CHƯƠNG IV. PHÂN LOẠI RỦI RO
+
+Điều 15. Mức độ rủi ro khách hàng
+1. Rủi ro THẤP: Khách hàng đã xác minh KYC đầy đủ, lịch sử giao dịch bình thường.
+2. Rủi ro TRUNG BÌNH: Khách hàng có giao dịch gần ngưỡng CTR, hoặc có 1 dấu hiệu cần lưu ý.
+3. Rủi ro CAO: Khách hàng nằm trong danh sách đen, giao dịch qua vùng lãnh thổ rủi ro cao,
+   hoặc có nhiều dấu hiệu đáng ngờ theo Điều 11 và Điều 12.
+
+Điều 16. Biện pháp xử lý theo mức độ rủi ro
+1. Rủi ro THẤP: Giám sát thường xuyên, cập nhật KYC định kỳ.
+2. Rủi ro TRUNG BÌNH: Tăng cường giám sát, báo cáo nội bộ.
+3. Rủi ro CAO: Đóng băng tài khoản tạm thời, lập STR ngay lập tức, báo cáo NHNN trong 24h.
+
+===================================================================
+
+CHƯƠNG V. ÁP DỤNG CHO TÀI SẢN MÃ HÓA
+
+Điều 20. Nghĩa vụ của tổ chức cung cấp dịch vụ tài sản mã hóa (VASP)
+1. VASP phải tuân thủ đầy đủ quy định KYC tương đương ngân hàng truyền thống.
+2. VASP phải triển khai hệ thống giám sát giao dịch tự động (transaction monitoring).
+3. VASP phải lưu trữ thông tin giao dịch tối thiểu 5 năm.
+
+Điều 21. Travel Rule cho giao dịch tài sản mã hóa
+1. Giao dịch tài sản mã hóa có giá trị từ 1.000 USD trở lên phải kèm theo thông tin:
+   a) Tên người gửi, số CCCD, địa chỉ ví gửi;
+   b) Tên người nhận, địa chỉ ví nhận;
+   c) Giá trị và loại tài sản mã hóa.
+
+===================================================================
+
+Ghi chú: Đây là bản trích xuất tóm tắt dùng cho mục đích demo nghiên cứu.
+Văn bản đầy đủ tham khảo tại website NHNN: https://www.sbv.gov.vn

@@ -1,0 +1,111 @@
+FATF RECOMMENDATIONS — TRÍCH XUẤT CÁC KHUYẾN NGHỊ LIÊN QUAN
+(Financial Action Task Force on Money Laundering)
+
+Dùng cho mục đích demo PoC nghiên cứu DigitalAsset Guard
+
+===================================================================
+
+KHUYẾN NGHỊ 1: ĐÁNH GIÁ RỦI RO VÀ ÁP DỤNG PHƯƠNG PHÁP DỰA TRÊN RỦI RO
+
+Quốc gia và tổ chức tài chính phải:
+- Xác định, đánh giá và hiểu rủi ro rửa tiền/tài trợ khủng bố (ML/TF);
+- Áp dụng biện pháp phòng chống tương xứng với mức độ rủi ro;
+- Phân bổ nguồn lực hiệu quả cho các lĩnh vực rủi ro cao.
+
+Đối với tài sản ảo (Virtual Asset - VA) và nhà cung cấp dịch vụ tài sản ảo (VASP):
+- Áp dụng đầy đủ các biện pháp AML/CFT tương đương tổ chức tài chính truyền thống.
+
+===================================================================
+
+KHUYẾN NGHỊ 10: NHẬN BIẾT KHÁCH HÀNG (CDD - Customer Due Diligence)
+
+Tổ chức tài chính phải thực hiện CDD khi:
+a) Thiết lập mối quan hệ kinh doanh;
+b) Thực hiện giao dịch vượt ngưỡng quy định (USD 15,000 hoặc tương đương);
+c) Có nghi ngờ rửa tiền hoặc tài trợ khủng bố;
+d) Có nghi ngờ về tính chính xác của thông tin nhận dạng.
+
+Biện pháp CDD bao gồm:
+1. Xác minh danh tính khách hàng bằng tài liệu, dữ liệu hoặc thông tin đáng tin cậy;
+2. Xác minh chủ sở hữu hưởng lợi (beneficial owner);
+3. Hiểu và lưu giữ thông tin về mục đích và bản chất mối quan hệ kinh doanh;
+4. Giám sát liên tục mối quan hệ kinh doanh.
+
+===================================================================
+
+KHUYẾN NGHỊ 15: CÔNG NGHỆ MỚI — TÀI SẢN ẢO VÀ VASP
+
+Khuyến nghị 15 (cập nhật 2019, 2021) quy định:
+
+1. Quốc gia phải đánh giá và giảm thiểu rủi ro ML/TF liên quan đến tài sản ảo (VA).
+2. VASP phải được cấp phép hoặc đăng ký tại quốc gia nơi thành lập.
+3. VASP phải tuân thủ đầy đủ các khuyến nghị FATF tương đương tổ chức tài chính.
+4. Quốc gia phải giám sát VASP và áp dụng các biện pháp chế tài.
+
+Ghi chú diễn giải (INR.15):
+- VA bao gồm: Bitcoin, Ethereum, stablecoin (USDT, USDC), token.
+- VASP bao gồm: sàn giao dịch, ví lưu ký, dịch vụ chuyển đổi VA.
+- Giao dịch P2P (ví tự quản - unhosted wallet) là rủi ro đặc biệt cần lưu ý.
+
+===================================================================
+
+KHUYẾN NGHỊ 16: TRAVEL RULE — QUY TẮC CHUYỂN TIỀN ĐIỆN TỬ
+
+Mục đích: Đảm bảo thông tin người gửi và người nhận đi kèm theo giao dịch,
+cho phép truy vết dòng tiền khi cần thiết.
+
+Yêu cầu cho giao dịch tài sản ảo:
+1. Giao dịch VA có giá trị từ USD 1,000 / EUR 1,000 trở lên phải kèm theo:
+   - Thông tin người gửi: Tên, số tài khoản/ví, địa chỉ hoặc mã nhận dạng quốc gia;
+   - Thông tin người nhận: Tên, số tài khoản/ví.
+
+2. VASP gửi (Originating VASP) phải:
+   - Thu thập và xác minh thông tin người gửi;
+   - Gửi thông tin kèm theo giao dịch cho VASP nhận.
+
+3. VASP nhận (Beneficiary VASP) phải:
+   - Xác minh thông tin người nhận;
+   - Từ chối hoặc giữ lại giao dịch nếu thiếu thông tin bắt buộc.
+
+4. Đối với giao dịch dưới ngưỡng:
+   - Vẫn phải lưu giữ thông tin cơ bản;
+   - Giám sát các giao dịch chia nhỏ (structuring) để tránh ngưỡng.
+
+===================================================================
+
+KHUYẾN NGHỊ 20: BÁO CÁO GIAO DỊCH ĐÁNG NGỜ (STR)
+
+1. Tổ chức tài chính và VASP phải báo cáo đơn vị tình báo tài chính (FIU)
+   khi nghi ngờ hoặc có cơ sở hợp lý nghi ngờ tài sản:
+   a) Là thu nhập từ hoạt động phạm tội; hoặc
+   b) Liên quan đến tài trợ khủng bố.
+
+2. Nghĩa vụ báo cáo áp dụng bất kể giá trị giao dịch.
+
+3. Tổ chức báo cáo được bảo vệ trước trách nhiệm pháp lý
+   khi báo cáo STR một cách thiện chí (good faith reporting).
+
+===================================================================
+
+DẤU HIỆU CẢNH BÁO (RED FLAGS) CHO GIAO DỊCH TÀI SẢN MÃ HÓA
+
+FATF Virtual Assets Red Flag Indicators (2020):
+
+Dấu hiệu liên quan đến giao dịch:
+1. Giao dịch chia nhỏ có cấu trúc (structuring) gần dưới ngưỡng báo cáo;
+2. Chuyển đổi nhanh giữa nhiều loại VA (chain-hopping);
+3. Giao dịch qua mixer/tumbler/CoinJoin để che dấu nguồn gốc;
+4. Giao dịch từ/đến ví nằm trong danh sách trừng phạt (OFAC, UN, EU);
+5. Giao dịch có cấu trúc fan-out (1→N) hoặc fan-in (N→1) bất thường;
+6. Vòng lặp dòng tiền khép kín (circular flow) qua nhiều ví trung gian.
+
+Dấu hiệu liên quan đến khách hàng:
+1. Khách hàng không cung cấp hoặc cung cấp thông tin KYC giả/mờ;
+2. Khách hàng sử dụng nhiều ví từ nhiều quốc gia khác nhau;
+3. Giao dịch không phù hợp với hồ sơ rủi ro và hoạt động kinh doanh khai báo;
+4. Khách hàng yêu cầu chuyển đổi VA sang tiền pháp định ngay lập tức.
+
+===================================================================
+
+Ghi chú: Đây là bản trích xuất tóm tắt dùng cho mục đích demo nghiên cứu.
+Tài liệu đầy đủ tham khảo tại: https://www.fatf-gafi.org/recommendations.html

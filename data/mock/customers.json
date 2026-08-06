@@ -1,0 +1,14 @@
+[
+    {
+        "fullname": "Nguyen Van A",
+        "id_number": "012345678901",
+        "account_number": "1000000001",
+        "linked_wallet": "hashed_wallet_good_user"
+    },
+    {
+        "fullname": "Tran Thi B",
+        "id_number": "098765432109",
+        "account_number": "2000000002",
+        "linked_wallet": "hashed_wallet_source_aaa"
+    }
+]

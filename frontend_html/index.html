@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DigitalAsset Guard — AML Copilot</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div id="login-screen" class="shell">
+    <form id="login-form" class="card login-card">
+      <span class="eyebrow">DigitalAsset Guard</span>
+      <h1>Đăng nhập</h1>
+      <div class="field">
+        <label for="username">Tài khoản</label>
+        <input id="username" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label for="password">Mật khẩu</label>
+        <input id="password" type="password" autocomplete="current-password" required />
+      </div>
+      <p id="login-error" class="error-banner" hidden></p>
+      <button type="submit" class="btn btn-primary">Đăng nhập</button>
+    </form>
+  </div>
+
+  <div id="app-screen" class="shell" hidden>
+    <header class="app-header">
+      <div>
+        <span class="eyebrow">DigitalAsset Guard</span>
+        <h1>AML Copilot — Bảng điều khiển chuyên viên</h1>
+        <p>Luồng nghiệp vụ 8 bước: Webhook → Privacy Layer → 5 Assistants → Human-in-the-loop → STR.</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span id="whoami" class="env-tag"></span>
+        <button id="logout-btn" class="btn">Đăng xuất</button>
+      </div>
+    </header>
+
+    <form id="tx-form" class="card">
+      <div class="card-header"><h2><span class="step-number">01</span>Nhập giao dịch (mô phỏng webhook)</h2></div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="tx_hash">Tx Hash</label>
+          <input id="tx_hash" class="mono" placeholder="Để trống để tự sinh" />
+        </div>
+        <div class="field">
+          <label for="amount_vnd">Giá trị giao dịch (VND)</label>
+          <input id="amount_vnd" type="number" min="0" step="1000000" value="620000000" />
+        </div>
+        <div class="field">
+          <label for="wallet_from">Ví nguồn (wallet_from)</label>
+          <input id="wallet_from" class="mono" value="0xbadwallet123" />
+        </div>
+        <div class="field">
+          <label for="wallet_to">Ví đích (wallet_to)</label>
+          <input id="wallet_to" class="mono" value="0xdestination_wallet_demo" />
+        </div>
+        <div class="section-divider">Thông tin định danh khách hàng (PII gốc)</div>
+        <div class="pii-note">Sẽ bị băm SHA-256 ngay tại Privacy Layer, không lưu bản gốc vào state.</div>
+        <div class="field pii">
+          <label for="fullname">Họ và tên</label>
+          <input id="fullname" value="Nguyễn Văn A" />
+        </div>
+        <div class="field pii">
+          <label for="id_number">Số CCCD/Hộ chiếu</label>
+          <input id="id_number" class="mono" value="001096001234" />
+        </div>
+        <div class="field pii">
+          <label for="account_number">Số tài khoản ngân hàng</label>
+          <input id="account_number" class="mono" value="1903456789012" />
+        </div>
+      </div>
+      <div class="btn-row">
+        <button id="submit-btn" type="submit" class="btn btn-primary">Kích hoạt webhook / Chạy pipeline</button>
+      </div>
+    </form>
+
+    <p id="run-error" class="error-banner" hidden></p>
+
+    <div id="pipeline-rail-container"></div>
+    <div id="skipped-container"></div>
+    <div id="approval-container"></div>
+    <div id="risk-breakdown-container"></div>
+    <div id="legal-citations-container"></div>
+    <div id="suspicious-path-container"></div>
+    <div id="report-preview-container"></div>
+    <div id="chat-container"></div>
+    <div id="step-log-container"></div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
