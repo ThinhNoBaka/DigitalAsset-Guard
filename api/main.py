@@ -448,9 +448,6 @@ def run_pipeline(
 
     state = _build_initial_state(payload)
 
-    # Privacy boundary check.
-    assert_no_raw_pii(state)
-
     tx_hash = state["tx_hash"]
 
     # PipelineRun là orchestration duy nhất.
@@ -473,6 +470,15 @@ def run_pipeline(
             status_code=500,
             detail=f"Lỗi khi chạy AML pipeline: {exc}",
         )
+
+    # Privacy boundary check — kiểm tra SAU khi graph đã chạy xong node
+    # privacy_layer (entry point, xem core/graph_builder.py). Không thể gọi
+    # assert_no_raw_pii trên state THÔ vừa build từ request: tại điểm đó PII
+    # gốc (fullname/id_number/account_number) chưa được băm — đó là đầu vào
+    # hợp lệ của Privacy Layer (core/privacy_layer.py::privacy_layer_node).
+    # Sau khi graph invoke, LangGraph đã loại các key PII gốc khỏi state và
+    # chỉ còn các field hashed_* (đã verify bằng script chẩn đoán).
+    assert_no_raw_pii(result_state)
 
     # Lưu PipelineRun để request sau có thể resume.
     RUNS[tx_hash] = run
