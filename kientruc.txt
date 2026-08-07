@@ -184,3 +184,6 @@ TPers_prj/
 
 
 docker run -d --name neo4j-aml -p 7474:7474 -p 7687:7687 -v "${HOME}\neo4j-aml\data:/data" -v "${HOME}\neo4j-aml\logs:/logs" --env NEO4J_AUTH=neo4j/123456789 --env NEO4J_PLUGINS='["graph-data-science"]' neo4j:latest
+
+
+uvicorn api.main:app --reload --port 8000

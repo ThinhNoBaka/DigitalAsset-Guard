@@ -188,18 +188,37 @@
     clear(container);
     const state = currentResult.state;
     const status = state.approval_status;
-    const score = state.final_risk_score;
+    const decision = state.decision;
     const card = el("div", { class: "card" });
 
     if (status === "pending") {
+      // Pivot kiến trúc: Decision Engine dùng rule-based composite, KHÔNG còn
+      // 1 điểm risk tổng hợp với ngưỡng 0.7. Lý do chờ duyệt dựa trên
+      // `decision` (REPORT/REVIEW — cả 2 đều case_status=pending_review):
+      //   - REPORT: vượt ngưỡng sanctions/structuring/classifier(θ)/graph hop
+      //   - REVIEW: 2 tín hiệu vừa cùng lúc, cần chuyên viên xem decision_evidence
+      const decisionLabel =
+        decision === "REPORT" ? "REPORT — vượt ngưỡng quyết định (sanctions/structuring/classifier/graph)"
+        : decision === "REVIEW" ? "REVIEW — 2 tín hiệu vừa (classifier + graph) cùng lúc"
+        : "Cần chuyên viên xem xét";
       card.appendChild(
         el("div", { class: "risk-banner high" }, [
-          el("span", { class: "risk-score-chip" }, [String(score)]),
-          el("span", {}, ["Giao dịch VƯỢT ngưỡng cảnh báo (≥ 0.7). Cần chuyên viên phê duyệt trước khi gửi STR (Thông tư 27)."]),
+          el("span", { class: "risk-score-chip" }, [decision || status]),
+          el("span", {}, [`[${decisionLabel}] ${decision === "REVIEW" ? "Case dừng tại Decision Engine — xem Decision Evidence; chưa tự soạn STR." : "Cần chuyên viên phê duyệt trước khi gửi STR (Thông tư 27)."}`]),
         ])
       );
-      const flags = state.kyc_flags && state.kyc_flags.length > 0 ? state.kyc_flags.join(", ") : "Không phát hiện";
-      card.appendChild(el("p", { style: "font-size:13.5px;margin-top:0" }, [el("strong", {}, ["Cờ KYC/OFAC: "]), flags]));
+      const sanctionMatch = state.sanction_result && state.sanction_result.is_match
+        ? `OFAC SDN MATCH (${state.sanction_result.matched_wallet || "?"})`
+        : "Không có match sanctions chính xác";
+      const fuzzy = state.name_similarity_warning
+        ? ` + Fuzzy name warning (${state.name_similarity_score ?? "?"}%)`
+        : "";
+      card.appendChild(
+        el("p", { style: "font-size:13.5px;margin-top:0" }, [
+          el("strong", {}, ["Sanctions: "]),
+          sanctionMatch + fuzzy,
+        ])
+      );
       const btnRow = el("div", { class: "btn-row" });
       const approveBtn = el("button", { class: "btn btn-approve" }, ["Approve (Duyệt & gửi STR)"]);
       const rejectBtn = el("button", { class: "btn btn-reject" }, ["Reject (Từ chối)"]);
@@ -214,7 +233,7 @@
         const link = el("a", { class: "btn btn-primary", href: `/api/pipeline/${encodeURIComponent(state.tx_hash)}/report?token=${encodeURIComponent(authToken)}`, download: "" }, ["Tải bản dự thảo STR (.docx)"]);
         card.appendChild(link);
       } else {
-        card.appendChild(el("p", { class: "empty-note" }, ["Giao dịch dưới ngưỡng cảnh báo (final_risk_score < 0.7) — tự động approved, không cần lập STR."]));
+        card.appendChild(el("p", { class: "empty-note" }, ["Case không có STR draft (v.d. REVIEW được duyệt nhưng không tự soạn STR, hoặc PASS auto-cleared) — không cần lập STR."]));
       }
     } else if (status === "rejected") {
       card.appendChild(
@@ -233,9 +252,11 @@
     approveBtn.disabled = true;
     rejectBtn.disabled = true;
     try {
+      // API /api/pipeline/{tx_hash}/decision nhận { approval_status: "approved"|"rejected" },
+      // KHÔNG phải { decision } — bản trước gửi sai tên field nên Approve/Reject luôn 422.
       const updatedState = await apiRequest(`/api/pipeline/${encodeURIComponent(currentResult.tx_hash)}/decision`, {
         method: "POST",
-        body: JSON.stringify({ decision }),
+        body: JSON.stringify({ approval_status: decision }),
       });
       currentResult.state = updatedState;
       renderAll();
@@ -252,34 +273,35 @@
     const container = document.getElementById("risk-breakdown-container");
     clear(container);
     const state = currentResult.state;
-    const breakdown = state.risk_breakdown || {};
-    const hasBreakdown = Object.keys(breakdown).length > 0;
     const topFeatures = state.top_features || [];
 
     const card = el("div", { class: "card" });
     card.appendChild(el("div", { class: "card-header" }, [el("h2", {}, ["Explainable Risk Assessment"])]));
 
-    if (hasBreakdown) {
-      const grid = el("div", { class: "breakdown-grid" });
-      [
-        ["Classifier", breakdown.classifier_contribution_pct],
-        ["KYC", breakdown.kyc_contribution_pct],
-        ["Graph", breakdown.graph_contribution_pct],
-      ].forEach(([label, pct]) => {
-        const clamped = Math.max(0, Math.min(100, Number(pct) || 0));
-        grid.appendChild(
-          el("div", { class: "breakdown-item" }, [
-            el("div", { class: "label" }, [label]),
-            el("div", { class: "value" }, [`${pct ?? 0}%`]),
-            el("div", { class: "bar-track" }, [el("div", { class: "bar-fill", style: `width:${clamped}%` })]),
-          ])
-        );
-      });
-      card.appendChild(grid);
-      card.appendChild(el("p", { class: "card-subtitle", style: "margin-top:-6px" }, ["Dựa trên công thức Final = 0.2×Classifier + 0.3×KYC + 0.5×Graph."]));
-    } else {
-      card.appendChild(el("p", { class: "empty-note" }, ["Chưa có risk_breakdown (alert_report chưa chạy tới bước này)."]));
-    }
+    // Pivot kiến trúc: KHÔNG còn risk_breakdown (công thức gộp điểm tổng hợp
+    // 0.2/0.3/0.5 đã bỏ). Hiển thị trực tiếp 2 điểm nguồn + hop distance —
+    // quyết định REPORT/REVIEW dựa trên rule-based composite (xem Decision
+    // Evidence) chứ không phải 1 con số tổng.
+    const scoreRows = [
+      ["Classifier score", state.classifier_score ?? "N/A"],
+      ["Graph score (PPR)", state.graph_score ?? "N/A"],
+      ["Hop tới ví bị sanction", state.hop_distance_to_blacklist ?? "N/A"],
+    ];
+    const grid = el("div", { class: "breakdown-grid" });
+    scoreRows.forEach(([label, value]) => {
+      grid.appendChild(
+        el("div", { class: "breakdown-item" }, [
+          el("div", { class: "label" }, [label]),
+          el("div", { class: "value" }, [String(value)]),
+        ])
+      );
+    });
+    card.appendChild(grid);
+    card.appendChild(
+      el("p", { class: "card-subtitle", style: "margin-top:-6px" }, [
+        "Quyết định REPORT/REVIEW dùng rule-based composite (từng tín hiệu xét độc lập) — KHÔNG còn công thức gộp 1 điểm tổng hợp. Xem Decision Evidence để biết rule cụ thể đã kích hoạt.",
+      ])
+    );
 
     if (topFeatures.length > 0) {
       card.appendChild(el("p", { style: "font-weight:600;font-size:13.5px;margin-bottom:8px" }, ["Đặc trưng ảnh hưởng lớn nhất tới điểm phân loại (top feature importance toàn cục)"]));
@@ -513,7 +535,7 @@
     const preview = el("div", { class: "report-preview" });
     preview.appendChild(el("div", { class: "row" }, [el("span", { class: "k" }, ["Mã giao dịch"]), el("span", { class: "v mono" }, [state.tx_hash || "UNKNOWN_HASH"])]));
     preview.appendChild(el("div", { class: "row" }, [el("span", { class: "k" }, ["Giá trị giao dịch"]), el("span", { class: "v" }, [fmtVND(state.amount_vnd) + " VND"])]));
-    preview.appendChild(el("div", { class: "row" }, [el("span", { class: "k" }, ["Điểm rủi ro hợp nhất"]), el("span", { class: "v" }, [state.final_risk_score ?? "—"])]));
+    preview.appendChild(el("div", { class: "row" }, [el("span", { class: "k" }, ["Decision"]), el("span", { class: "v" }, [state.decision ?? "—"])]));
     card.appendChild(preview);
     card.appendChild(
       el("p", { class: "disclaimer" }, [
@@ -531,7 +553,10 @@
     const state = currentResult.state;
     const container = document.getElementById("chat-container");
     clear(container);
-    if (state.final_risk_score === null || state.final_risk_score === undefined) return;
+    // Pivot kiến trúc: gate theo `decision` (giống API /chat: yêu cầu pipeline
+    // đã chạy tới Decision Engine), KHÔNG theo final_risk_score — field đó
+    // thuộc kiến trúc weighted-sum cũ, không còn được pipeline ghi.
+    if (!state.decision) return;
     chatHistory = [];
 
     const card = el("div", { class: "card" });

@@ -172,9 +172,11 @@ def run_regulation_rag(state: Dict[str, Any]) -> Dict[str, Any]:
     assert_no_raw_pii(state)
 
     # 2. Lấy đặc trưng từ state
+    # SPEC_v2 §2: đổi tên risk_score_classifier -> classifier_score,
+    # graph_risk_score -> graph_score (breaking change).
     amount_vnd = state.get("amount_vnd", 0)
-    risk_score_clf = state.get("risk_score_classifier", 0.0)
-    graph_risk = state.get("graph_risk_score", 0.0) or 0.0
+    risk_score_clf = state.get("classifier_score", 0.0) or 0.0
+    graph_risk = state.get("graph_score", 0.0) or 0.0
 
     # SỬA LỖI Phần 7: community_id trước đây đọc key "community_id" nhưng
     # graph_aml.py (Phần 6) không ghi key này ra state -> luôn "unknown".
@@ -284,10 +286,10 @@ if __name__ == "__main__":
         "hashed_fullname": "test_hash_1",
         "hashed_id_number": "test_hash_2",
         "hashed_account_number": "test_hash_3",
-        "risk_score_classifier": 0.75,
-        "graph_risk_score": 0.85,
+        "classifier_score": 0.75,
+        "graph_score": 0.85,
         "community_id": 6,
-        "kyc_flags": [],
+        "sanction_result": {"is_match": False, "matched_wallet": None, "source": "OFAC SDN", "match_type": None, "program": None},
     }
     result = run_regulation_rag(test_state)
     print("\n=== KẾT QUẢ ===")

@@ -1,0 +1,78 @@
+{
+  "scenario": "layering",
+  "description": "Dòng tiền đi qua 4 cấp độ ví trung gian (giả lập các 'sàn DEX' khác nhau) trước khi tới ví ngân hàng đích -- nguồn bị gắn cờ đen, đích thì chưa từng vi phạm trực tiếp.",
+  "legs": [
+    {
+      "from": "0xlayering_source_blacklisted",
+      "to": "0xlayering_dex1",
+      "amount_vnd": 900000000,
+      "timestamp": 1735103600
+    },
+    {
+      "from": "0xlayering_dex1",
+      "to": "0xlayering_dex2",
+      "amount_vnd": 873000000,
+      "timestamp": 1735107200
+    },
+    {
+      "from": "0xlayering_dex2",
+      "to": "0xlayering_dex3",
+      "amount_vnd": 846810000,
+      "timestamp": 1735110800
+    },
+    {
+      "from": "0xlayering_dex3",
+      "to": "0xlayering_dex4",
+      "amount_vnd": 821405700,
+      "timestamp": 1735114400
+    },
+    {
+      "from": "0xlayering_dex4",
+      "to": "0xlayering_bank_target_wallet",
+      "amount_vnd": 796763529,
+      "timestamp": 1735118000
+    }
+  ],
+  "graph_edges": [
+    [
+      "0xlayering_source_blacklisted",
+      "0xlayering_dex1",
+      900000000
+    ],
+    [
+      "0xlayering_dex1",
+      "0xlayering_dex2",
+      873000000
+    ],
+    [
+      "0xlayering_dex2",
+      "0xlayering_dex3",
+      846810000
+    ],
+    [
+      "0xlayering_dex3",
+      "0xlayering_dex4",
+      821405700
+    ],
+    [
+      "0xlayering_dex4",
+      "0xlayering_bank_target_wallet",
+      796763529
+    ]
+  ],
+  "blacklisted_wallets": [
+    "0xlayering_source_blacklisted"
+  ],
+  "evaluated_transaction": {
+    "tx_hash": null,
+    "wallet_from": "0xlayering_dex4",
+    "wallet_to": "0xlayering_bank_target_wallet",
+    "amount_vnd": 796763529,
+    "fullname": "Nguyen Van A",
+    "id_number": "012345678901",
+    "account_number": "1000000001"
+  },
+  "expected": {
+    "graph_assistant": "hop_distance_to_blacklist(0xlayering_dex4) phải = 4 (> ngưỡng REPORT=2, nên KHÔNG kích hoạt Rule 4). Tuỳ classifier_score thật của model mà case có thể thành REVIEW (2 tín hiệu medium: classifier + graph ở 3-4 hop) hoặc PASS — đây là hành vi ĐÚNG của kiến trúc rule-based composite mới, không còn graph_risk_score tổng hợp. KYC không còn trả kyc_flags (bỏ scoring KYC) — chỉ sanction exact match + name fuzzy warning."
+  }
+}

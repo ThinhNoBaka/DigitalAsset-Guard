@@ -1,0 +1,24 @@
+{
+  "selected_config": "smote_only",
+  "configs": {
+    "scale_pos_weight_only": {
+      "precision": 0.8534,
+      "recall": 0.7313,
+      "f1": 0.7877,
+      "auc_pr": 0.7993
+    },
+    "smote_only": {
+      "precision": 0.9002,
+      "recall": 0.7248,
+      "f1": 0.8031,
+      "auc_pr": 0.8112
+    },
+    "smote_plus_scale_pos_weight": {
+      "precision": 0.9002,
+      "recall": 0.7248,
+      "f1": 0.8031,
+      "auc_pr": 0.8112
+    }
+  },
+  "notes": {}
+}

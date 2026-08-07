@@ -1,36 +1,27 @@
 """
-api/main.py -- Phần 10 (SPEC.md §1, §5, §6, §7, §10) + mở rộng cho FE HTML/JS thuần.
+api/main.py
+FastAPI Gateway cho DigitalAsset Guard.
 
-FastAPI Gateway. Có 3 nhóm:
+SPEC_v2 pipeline:
 
-1. `/screen-wallet` (giữ nguyên như bản gốc) -- tra cứu ví đơn lẻ,
-   API-as-a-Service, KHÔNG chạy full LangGraph, KHÔNG cần đăng nhập.
+Privacy Layer
+    ↓
+Transaction Assistant
+    ↓
+Graph Assistant
+    ↓
+Sanctions Assistant
+    ↓
+Decision Engine
+    ↓
+    ├── PASS → END
+    │
+    └── REPORT → RAG → Report → Human Checkpoint
 
-2. `/api/pipeline/*` (thay thế vai trò của ui/app.py Streamlit) -- expose đúng
-   luồng mà core/graph_builder.PipelineRun đang chạy. YÊU CẦU đăng nhập (xem
-   mục 3) trừ `/api/auth/login` chính nó.
-
-   Vì PipelineRun cần "sống" qua nhiều request (chạy xong -> chờ Approve/Reject
-   ở 1 request khác), ta giữ instance trong bộ nhớ (dict RUNS), key = tx_hash.
-   Cách này ĐÚNG với quy mô demo (1 process, 1 buổi báo cáo) -- KHÔNG dùng cho
-   production nhiều instance/nhiều người dùng đồng thời (ghi rõ hạn chế này
-   trong báo cáo, giống như PII_SALT cố định ở Privacy Layer).
-
-3. `/api/auth/login` -- đăng nhập username/password (đọc từ biến môi trường
-   AML_AUTH_USERNAME / AML_AUTH_PASSWORD, mặc định compliance/changeme123 --
-   NÊN đổi qua biến môi trường trước khi demo cho người khác xem). Token cấp
-   ra cũng chỉ sống trong RAM (dict TOKENS) -- cùng hạn chế như RUNS ở trên.
-
-Không còn React/Vite/npm: `/` trả thẳng file `frontend_html/index.html`
-(HTML + JS thuần, gọi fetch() vào các endpoint trên), `/static/*` phục vụ
-app.js/styles.css đi kèm. Mở trình duyệt vào chính địa chỉ backend là xong,
-không cần chạy thêm process nào khác.
-
-Chạy thử:
-    uvicorn api.main:app --reload --port 8000
-    (chạy từ thư mục gốc digitalasset_guard/, để import agents.* / core.* đúng)
-    rồi mở http://localhost:8000
+FastAPI KHÔNG tự điều phối agent.
+Toàn bộ orchestration phải đi qua core.graph_builder.PipelineRun.
 """
+
 import os
 import secrets
 from typing import Any, Dict, List, Optional
@@ -41,28 +32,37 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from core.privacy_layer import assert_no_raw_pii
 from core.graph_builder import PipelineRun
+from core.privacy_layer import assert_no_raw_pii
 from agents.kyc_verification import verify_kyc
 from agents.transaction_classifier import analyze_transaction
-
-app = FastAPI(
-    title="DigitalAsset Guard -- API Gateway",
-    description="API cho DigitalAsset Guard AI Copilot (screen-wallet + full pipeline).",
-    version="0.3.0-MVP",
+from agents.decision_engine import (
+    _load_classifier_threshold,
+    _CLASSIFIER_MEDIUM_RATIO,
 )
 
+
 # =============================================================================
-# --- Đăng nhập (username/password) -- bảo vệ nhóm /api/pipeline/* ---
+# APP
 # =============================================================================
-# Demo-scale: 1 cặp user/pass đọc từ biến môi trường (đổi được, không hardcode
-# lộ trong git), token cấp ra giữ trong RAM (dict TOKENS). Hạn chế giống RUNS:
-# mất khi restart server, không hợp production nhiều instance. Đủ dùng cho 1
-# buổi demo/nội bộ vài chuyên viên.
+
+app = FastAPI(
+    title="DigitalAsset Guard — API Gateway",
+    description="API Gateway cho DigitalAsset Guard AI Copilot.",
+    version="0.4.0-SPEC-v2",
+)
+
+
+# =============================================================================
+# AUTH
+# =============================================================================
+
 AUTH_USERS: Dict[str, str] = {
-    os.environ.get("AML_AUTH_USERNAME", "nhanvien1"): os.environ.get("AML_AUTH_PASSWORD", "123456789"),
+    os.environ.get("AML_AUTH_USERNAME", "nhanvien1"):
+        os.environ.get("AML_AUTH_PASSWORD", "123456789"),
 }
-TOKENS: Dict[str, str] = {}  # token -> username
+
+TOKENS: Dict[str, str] = {}
 
 
 class LoginRequest(BaseModel):
@@ -78,75 +78,167 @@ class LoginResponse(BaseModel):
 @app.post("/api/auth/login", response_model=LoginResponse)
 def login(payload: LoginRequest) -> LoginResponse:
     expected = AUTH_USERS.get(payload.username)
-    if expected is None or not secrets.compare_digest(expected, payload.password):
-        raise HTTPException(status_code=401, detail="Sai tài khoản hoặc mật khẩu.")
+
+    if expected is None or not secrets.compare_digest(
+        expected,
+        payload.password,
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Sai tài khoản hoặc mật khẩu.",
+        )
+
     token = secrets.token_urlsafe(32)
     TOKENS[token] = payload.username
-    return LoginResponse(token=token, username=payload.username)
+
+    return LoginResponse(
+        token=token,
+        username=payload.username,
+    )
 
 
-def require_auth(authorization: Optional[str] = Header(None)) -> str:
+def require_auth(
+    authorization: Optional[str] = Header(None),
+) -> str:
+
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Thiếu token đăng nhập.")
+        raise HTTPException(
+            status_code=401,
+            detail="Thiếu token đăng nhập.",
+        )
+
     token = authorization.removeprefix("Bearer ").strip()
+
     username = TOKENS.get(token)
+
     if username is None:
-        raise HTTPException(status_code=401, detail="Token không hợp lệ hoặc đã hết hạn (server có thể vừa restart) -- đăng nhập lại.")
+        raise HTTPException(
+            status_code=401,
+            detail="Token không hợp lệ hoặc server đã restart.",
+        )
+
     return username
 
-# =============================================================================
-# --- Endpoint gốc (Phần 10, mục 1): /screen-wallet -- KHÔNG thay đổi logic ---
-# =============================================================================
 
+# =============================================================================
+# SCREEN WALLET
+# =============================================================================
 
 class WalletScreenRequest(BaseModel):
-    wallet_address: str = Field(..., description="Địa chỉ ví on-chain cần sàng lọc.")
-    amount_vnd: float = Field(0, ge=0)
+    wallet_address: str = Field(
+        ...,
+        description="Địa chỉ ví on-chain cần sàng lọc.",
+    )
+    amount_vnd: float = Field(
+        0,
+        ge=0,
+    )
 
 
 class WalletScreenResponse(BaseModel):
     wallet_address: str
     is_sanctioned: bool
-    kyc_flags: List[str]
-    risk_score_classifier: Optional[float] = None
+    sanction_result: Dict[str, Any]
+    classifier_score: Optional[float] = None
     risk_level: str
     note: Optional[str] = None
 
 
-def _build_minimal_state(wallet_address: str, amount_vnd: float) -> dict:
-    state = {"wallet_from": wallet_address, "wallet_to": "", "amount_vnd": amount_vnd}
+def _build_minimal_state(
+    wallet_address: str,
+    amount_vnd: float,
+) -> dict:
+
+    state = {
+        "wallet_from": wallet_address,
+        "wallet_to": "",
+        "amount_vnd": amount_vnd,
+    }
+
     assert_no_raw_pii(state)
+
     return state
 
 
-@app.post("/screen-wallet", response_model=WalletScreenResponse)
-def screen_wallet(payload: WalletScreenRequest) -> WalletScreenResponse:
+@app.post(
+    "/screen-wallet",
+    response_model=WalletScreenResponse,
+)
+def screen_wallet(
+    payload: WalletScreenRequest,
+) -> WalletScreenResponse:
+
     wallet_address = payload.wallet_address.strip()
+
     if not wallet_address:
-        raise HTTPException(status_code=422, detail="wallet_address không được để trống.")
+        raise HTTPException(
+            status_code=422,
+            detail="wallet_address không được để trống.",
+        )
 
-    state = _build_minimal_state(wallet_address, payload.amount_vnd)
+    state = _build_minimal_state(
+        wallet_address,
+        payload.amount_vnd,
+    )
 
-    kyc_result = verify_kyc(state)
-    kyc_flags = kyc_result.get("kyc_flags", [])
-    is_sanctioned = any("match_ofac" in flag for flag in kyc_flags)
+    # Sanctions Assistant.
+    sanctions_state = verify_kyc(state)
 
-    risk_score: Optional[float] = None
+    sanction_result = sanctions_state.get(
+        "sanction_result",
+        {
+            "is_match": False,
+            "matched_wallet": None,
+            "source": "OFAC SDN",
+            "match_type": None,
+            "program": None,
+        },
+    )
+
+    is_sanctioned = sanction_result.get(
+        "is_match",
+        False,
+    )
+
+    # Transaction Assistant.
+    classifier_score: Optional[float] = None
     note: Optional[str] = None
-    try:
-        state["kyc_flags"] = kyc_flags
-        scored_state = analyze_transaction(state)
-        risk_score = scored_state.get("risk_score_classifier")
-    except FileNotFoundError as e:
-        note = f"Model XGBoost chưa sẵn sàng ({e}); chỉ trả kết quả sàng lọc danh sách trừng phạt."
-    except Exception as e:
-        note = f"Lỗi khi chấm điểm rủi ro sơ bộ: {e}"
 
-    if risk_score is None:
-        risk_level = "unknown"
-    elif is_sanctioned or risk_score >= 0.7:
+    try:
+        scored_state = analyze_transaction(state)
+        classifier_score = scored_state.get("classifier_score")
+
+    except FileNotFoundError as exc:
+        note = (
+            f"Model XGBoost chưa sẵn sàng ({exc}); "
+            "chỉ trả kết quả sanctions screening."
+        )
+
+    except Exception as exc:
+        note = (
+            f"Lỗi khi chấm điểm classifier: {exc}"
+        )
+
+    # Đây chỉ là mức hiển thị của endpoint /screen-wallet.
+    # Không phải Decision Engine của SPEC_v2.
+    #
+    # QUAN TRỌNG — TRƯỚC ĐÂY hardcode 0.7/0.3 ở đây, là 1 nguồn quyết định
+    # riêng đá nhau với Decision Engine mới (agents/decision_engine.py dùng θ
+    # calibrate bằng precision-recall trên Elliptic). Từ nay dùng ĐÚNG θ:
+    #     - high   : classifier_score >= θ            (khớp Rule 3 của DE)
+    #     - medium : θ*0.6 <= classifier_score < θ    (khớp Rule 5 "medium"
+    #               tín hiệu classifier — cùng hằng số _CLASSIFIER_MEDIUM_RATIO)
+    #     - low    : còn lại
+    classifier_threshold = _load_classifier_threshold()
+    classifier_medium_threshold = classifier_threshold * _CLASSIFIER_MEDIUM_RATIO
+
+    if is_sanctioned:
         risk_level = "high"
-    elif risk_score >= 0.3:
+    elif classifier_score is None:
+        risk_level = "unknown"
+    elif classifier_score >= classifier_threshold:
+        risk_level = "high"
+    elif classifier_score >= classifier_medium_threshold:
         risk_level = "medium"
     else:
         risk_level = "low"
@@ -154,236 +246,544 @@ def screen_wallet(payload: WalletScreenRequest) -> WalletScreenResponse:
     return WalletScreenResponse(
         wallet_address=wallet_address,
         is_sanctioned=is_sanctioned,
-        kyc_flags=kyc_flags,
-        risk_score_classifier=risk_score,
+        sanction_result=sanction_result,
+        classifier_score=classifier_score,
         risk_level=risk_level,
         note=note,
     )
 
 
+# =============================================================================
+# HEALTH
+# =============================================================================
+
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+    }
 
 
 # =============================================================================
-# --- MỚI: /api/pipeline/* -- thay thế vai trò của ui/app.py (Streamlit) ---
+# AUDIT LOG
 # =============================================================================
 
-# Lưu các PipelineRun đang "chờ duyệt" trong bộ nhớ process, key = tx_hash.
-# Hạn chế đã biết: mất khi restart server, không an toàn multi-worker -- chấp
-# nhận được cho quy mô demo (xem docstring đầu file).
+_AUDIT_LOG_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "logs",
+        "audit_trail.log",
+    )
+)
+
+
+class AuditLogResponse(BaseModel):
+    lines: List[str]
+
+
+@app.get(
+    "/logs",
+    response_model=AuditLogResponse,
+)
+def get_audit_logs(
+    n: int = 100,
+    _user: str = Depends(require_auth),
+) -> AuditLogResponse:
+
+    if n <= 0 or n > 1000:
+        raise HTTPException(
+            status_code=422,
+            detail="Tham số n phải trong khoảng 1-1000.",
+        )
+
+    if not os.path.exists(_AUDIT_LOG_PATH):
+        return AuditLogResponse(lines=[])
+
+    with open(
+        _AUDIT_LOG_PATH,
+        "r",
+        encoding="utf-8",
+    ) as file:
+
+        lines = file.readlines()
+
+    return AuditLogResponse(
+        lines=[
+            line.rstrip("\n")
+            for line in lines[-n:]
+        ]
+    )
+
+
+# =============================================================================
+# PIPELINE
+# =============================================================================
+
 RUNS: Dict[str, PipelineRun] = {}
 
 
 class RawTransactionRequest(BaseModel):
-    """Khớp đúng các trường form nhập giao dịch của ui/app.py cũ."""
+    """
+    Input giao dịch trước Privacy Layer.
 
-    tx_hash: Optional[str] = Field(None, description="Để trống để hệ thống tự sinh.")
+    PII chỉ tồn tại ở request boundary và được chuyển vào
+    Privacy Layer để hashing.
+    """
+
+    tx_hash: Optional[str] = None
+
     wallet_from: str
     wallet_to: str
-    amount_vnd: float = Field(..., ge=0)
-    fullname: str = Field(..., description="PII gốc -- sẽ bị băm ngay tại Privacy Layer, không lưu lại.")
+
+    amount_vnd: float = Field(
+        ...,
+        ge=0,
+    )
+
+    fullname: str
     id_number: str
     account_number: str
 
 
-class PipelineStepView(BaseModel):
-    step_key: str
-    label: str
-    snapshot: Dict[str, Any]
-
-
 class PipelineRunResponse(BaseModel):
-    tx_hash: Optional[str] = Field(
-        None,
-        description=(
-            "None khi giao dịch bị bỏ qua (skipped=True) và người dùng không tự nhập "
-            "tx_hash -- pipeline dưới ngưỡng báo cáo không sinh ra tx_hash thật."
-        ),
-    )
-    skipped: bool = Field(
-        False,
-        description=(
-            "True nếu giao dịch dưới ngưỡng báo cáo (REPORT_THRESHOLD_VND) -- đây là kết "
-            "quả nghiệp vụ HỢP LỆ (không cần soi AML), KHÔNG phải lỗi hệ thống. Khi True, "
-            "không có phiên nào được lưu để Approve/Reject/tải báo cáo/chat."
-        ),
-    )
-    steps: List[PipelineStepView]
+    tx_hash: Optional[str]
     state: Dict[str, Any]
 
 
-def _serialize_run(
-    tx_hash: Optional[str], run: PipelineRun, steps: List[PipelineStepView], *, skipped: bool = False
+# =============================================================================
+# BUILD INITIAL STATE
+# =============================================================================
+
+def _build_initial_state(
+    payload: RawTransactionRequest,
+) -> Dict[str, Any]:
+    """
+    Tạo AMLState đầu vào cho PipelineRun.
+
+    Không thực hiện classifier / graph / sanctions / decision ở đây.
+    Những việc đó thuộc LangGraph.
+    """
+
+    tx_hash = payload.tx_hash or secrets.token_hex(16)
+
+    state: Dict[str, Any] = {
+        "tx_hash": tx_hash,
+
+        "wallet_from": payload.wallet_from,
+        "wallet_to": payload.wallet_to,
+        "amount_vnd": payload.amount_vnd,
+
+        # Raw PII chỉ đi vào Privacy Layer.
+        "fullname": payload.fullname,
+        "id_number": payload.id_number,
+        "account_number": payload.account_number,
+
+        # -----------------------------------------------------------------
+        # SPEC_v2 fields
+        # -----------------------------------------------------------------
+
+        "classifier_score": None,
+        "graph_score": None,
+
+        "sanction_result": {
+            "is_match": False,
+            "matched_wallet": None,
+            "source": "OFAC SDN",
+            "match_type": None,
+            "program": None,
+        },
+
+        "current_wallet_is_sanctioned": False,
+
+        "risk_assessment_score": None,
+
+        "decision": None,
+        "decision_reason": "",
+        "decision_evidence": [],
+
+        "case_status": None,
+
+        "approval_status": "pending",
+
+        # Existing fields.
+        "hashed_fullname": None,
+        "hashed_id_number": None,
+        "hashed_account_number": None,
+
+        "top_features": [],
+        "avg_time_between_tx": None,
+        "balance_clustering_flag": False,
+
+        "name_similarity_warning": False,
+        "name_similarity_score": None,
+
+        "hop_distance_to_blacklist": None,
+        "fan_out": None,
+        "suspicious_path": None,
+        "community_id": None,
+
+        "legal_citations": [],
+        "legal_sources_retrieved": [],
+
+        "thought": None,
+        "report_path": None,
+    }
+
+    return state
+
+
+# =============================================================================
+# RUN PIPELINE
+# =============================================================================
+
+@app.post(
+    "/api/pipeline/run",
+    response_model=PipelineRunResponse,
+)
+def run_pipeline(
+    payload: RawTransactionRequest,
+    _user: str = Depends(require_auth),
 ) -> PipelineRunResponse:
-    return PipelineRunResponse(tx_hash=tx_hash, skipped=skipped, steps=steps, state=run.state)
 
+    state = _build_initial_state(payload)
 
-@app.post("/api/pipeline/run", response_model=PipelineRunResponse)
-def run_pipeline(payload: RawTransactionRequest, _user: str = Depends(require_auth)) -> PipelineRunResponse:
-    """
-    Chạy toàn bộ pipeline (Webhook -> Privacy Layer -> 5 Assistants -> điểm dừng
-    chờ duyệt) TRONG 1 REQUEST đồng bộ -- giống hệt cách demo_run.py/ui/app.py
-    cũ đang làm, chỉ khác là trả kết quả về JSON cho FE thay vì in ra
-    console/Streamlit. Không cần polling/WebSocket vì pipeline chạy đủ nhanh
-    cho mục đích demo.
-    """
-    raw_transaction: Dict[str, Any] = payload.model_dump()
+    # Privacy boundary check.
+    assert_no_raw_pii(state)
 
-    run = PipelineRun()
-    steps: List[PipelineStepView] = []
+    tx_hash = state["tx_hash"]
+
+    # PipelineRun là orchestration duy nhất.
+    run = PipelineRun(
+        state=state,
+        thread_id=tx_hash,
+    )
+
     try:
-        for step_key, label, snapshot in run.steps(raw_transaction):
-            steps.append(PipelineStepView(step_key=step_key, label=label, snapshot=snapshot))
-            if step_key == "webhook" and snapshot.get("skipped"):
-                # Giao dịch dưới ngưỡng báo cáo -- KẾT QUẢ HỢP LỆ, không phải lỗi.
-                # run.state ở đây chỉ có {"skipped": True, "amount_vnd": ...}, KHÔNG có
-                # tx_hash (xem core/graph_builder.py::PipelineRun.steps). Không được ép
-                # coi thiếu tx_hash là lỗi 500 -- chỉ dùng tx_hash người dùng tự nhập (nếu
-                # có) để hiển thị, và KHÔNG lưu vào RUNS vì không có gì để Approve/Reject/
-                # tải báo cáo/chat (final_risk_score, report_path đều không tồn tại).
-                return _serialize_run(payload.tx_hash, run, steps, skipped=True)
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi cấu hình: {e}")
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=500, detail=f"Thiếu dữ liệu/model cần thiết cho pipeline: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi không mong muốn khi chạy pipeline: {e}")
+        result_state = run.run()
 
-    tx_hash = run.state.get("tx_hash") or payload.tx_hash
-    if not tx_hash:
-        raise HTTPException(status_code=500, detail="Pipeline không sinh ra tx_hash -- không thể lưu phiên chờ duyệt.")
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Thiếu model/dữ liệu cần thiết: {exc}",
+        )
 
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi chạy AML pipeline: {exc}",
+        )
+
+    # Lưu PipelineRun để request sau có thể resume.
     RUNS[tx_hash] = run
-    return _serialize_run(tx_hash, run, steps)
+
+    return PipelineRunResponse(
+        tx_hash=tx_hash,
+        state=result_state,
+    )
 
 
-def _get_run_or_404(tx_hash: str) -> PipelineRun:
+# =============================================================================
+# GET STATE
+# =============================================================================
+
+def _get_run_or_404(
+    tx_hash: str,
+) -> PipelineRun:
+
     run = RUNS.get(tx_hash)
+
     if run is None:
         raise HTTPException(
             status_code=404,
-            detail=f"Không tìm thấy phiên chạy cho tx_hash={tx_hash} (có thể server đã restart).",
+            detail=(
+                f"Không tìm thấy phiên "
+                f"tx_hash={tx_hash}. "
+                "Có thể server đã restart."
+            ),
         )
+
     return run
 
 
-@app.get("/api/pipeline/{tx_hash}/state")
-def get_pipeline_state(tx_hash: str, _user: str = Depends(require_auth)) -> Dict[str, Any]:
+@app.get(
+    "/api/pipeline/{tx_hash}/state",
+)
+def get_pipeline_state(
+    tx_hash: str,
+    _user: str = Depends(require_auth),
+) -> Dict[str, Any]:
+
     run = _get_run_or_404(tx_hash)
+
     return run.state
 
 
+# =============================================================================
+# APPROVE / REJECT
+# =============================================================================
+
 class DecisionRequest(BaseModel):
-    decision: str = Field(..., pattern="^(approved|rejected)$")
+    approval_status: str = Field(
+        ...,
+        pattern="^(approved|rejected)$",
+    )
 
 
-@app.post("/api/pipeline/{tx_hash}/decision")
-def submit_decision(tx_hash: str, payload: DecisionRequest, _user: str = Depends(require_auth)) -> Dict[str, Any]:
-    """Approve/Reject -- tương đương 2 nút bấm trong ui/app.py cũ."""
+@app.post(
+    "/api/pipeline/{tx_hash}/decision",
+)
+def submit_decision(
+    tx_hash: str,
+    payload: DecisionRequest,
+    _user: str = Depends(require_auth),
+) -> Dict[str, Any]:
+
     run = _get_run_or_404(tx_hash)
-    updated_state = run.resume(payload.decision)
+
+    state = run.state
+
+    # REVIEW và REPORT đều gán case_status="pending_review" (cả 2 cần chuyên
+    # viên xem) — nên endpoint này phục vụ chung cả 2 loại. REVIEW không có
+    # interrupt thật (graph chạy thẳng tới END), resume() chỉ xác nhận lại
+    # approval_status (đã kiểm tra không crash — xem core/graph_builder.py
+    # docstring _route_after_decision).
+    if state.get("case_status") != "pending_review":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Giao dịch này không ở trạng thái "
+                "pending_review."
+            ),
+        )
+
+    updated_state = run.resume(
+        payload.approval_status
+    )
+
     return updated_state
 
 
-@app.get("/api/pipeline/{tx_hash}/report")
-def download_report(tx_hash: str, token: Optional[str] = None) -> FileResponse:
-    # Thẻ <a href download> không gửi được header Authorization, nên endpoint
-    # này nhận token qua query string (?token=...) thay vì Header. Vẫn kiểm
-    # tra đúng như require_auth, chỉ khác nguồn lấy token.
+# =============================================================================
+# REPORT
+# =============================================================================
+
+@app.get(
+    "/api/pipeline/{tx_hash}/report",
+)
+def download_report(
+    tx_hash: str,
+    token: Optional[str] = None,
+) -> FileResponse:
+
     username = TOKENS.get(token or "")
+
     if username is None:
-        raise HTTPException(status_code=401, detail="Thiếu hoặc sai token -- đăng nhập lại rồi tải lại trang.")
+        raise HTTPException(
+            status_code=401,
+            detail="Thiếu hoặc sai token.",
+        )
+
     run = _get_run_or_404(tx_hash)
-    report_path = run.state.get("report_path")
-    if not report_path or not os.path.exists(report_path):
-        raise HTTPException(status_code=404, detail="Chưa có file báo cáo STR cho giao dịch này.")
+
+    state = run.state
+
+    report_path = state.get("report_path")
+
+    if not report_path:
+        raise HTTPException(
+            status_code=404,
+            detail="Giao dịch chưa có báo cáo STR.",
+        )
+
+    if not os.path.exists(report_path):
+        raise HTTPException(
+            status_code=404,
+            detail="File báo cáo không tồn tại.",
+        )
+
     return FileResponse(
         report_path,
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        media_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "wordprocessingml.document"
+        ),
         filename=os.path.basename(report_path),
     )
 
 
+# =============================================================================
+# CHAT
+# =============================================================================
+
 class ChatRequest(BaseModel):
-    question: str = Field(..., min_length=1)
+    question: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class ChatResponse(BaseModel):
     answer: str
 
 
-@app.post("/api/pipeline/{tx_hash}/chat", response_model=ChatResponse)
-def chat_about_transaction(tx_hash: str, payload: ChatRequest, _user: str = Depends(require_auth)) -> ChatResponse:
-    """
-    Phần 12.1 -- chatbot TỔNG HỢP/GIẢI THÍCH/KHUYẾN NGHỊ dựa trên context đã
-    tính sẵn, y hệt logic trong ui/app.py::_render_chat_panel, chỉ chuyển thành
-    endpoint để FE React gọi. 1 câu hỏi = 1 lần gọi API, không giữ lịch sử hội
-    thoại phía server (khớp yêu cầu trong THAY_DOI_SO_VOI_BAN_GOC.md §12.1).
-    """
-    import json as _json
+@app.post(
+    "/api/pipeline/{tx_hash}/chat",
+    response_model=ChatResponse,
+)
+def chat_about_transaction(
+    tx_hash: str,
+    payload: ChatRequest,
+    _user: str = Depends(require_auth),
+) -> ChatResponse:
+
+    import json
 
     from agents.regulation_rag import call_llm_api
 
     run = _get_run_or_404(tx_hash)
+
     state = run.state
 
-    if state.get("final_risk_score") is None:
-        raise HTTPException(status_code=400, detail="Pipeline chưa chạy xong tới bước tính final_risk_score.")
+    if state.get("decision") is None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Pipeline chưa chạy tới Decision Engine."
+            ),
+        )
 
+    # Context hoàn toàn theo SPEC_v2.
     context = {
-        "final_risk_score": state.get("final_risk_score"),
-        "risk_breakdown": state.get("risk_breakdown"),
-        "top_features": state.get("top_features"),
-        "hop_distance_to_blacklist": state.get("hop_distance_to_blacklist"),
-        "fan_out": state.get("fan_out"),
-        "community_id": state.get("community_id"),
-        "legal_citations": state.get("legal_citations"),
-        "kyc_flags": state.get("kyc_flags"),
+        "decision": state.get("decision"),
+        "decision_reason": state.get("decision_reason"),
+        "decision_evidence": state.get("decision_evidence"),
+        "case_status": state.get("case_status"),
+
+        "classifier_score": state.get(
+            "classifier_score"
+        ),
+        "graph_score": state.get(
+            "graph_score"
+        ),
+
+        "sanction_result": state.get(
+            "sanction_result"
+        ),
+
+        "current_wallet_is_sanctioned": state.get(
+            "current_wallet_is_sanctioned"
+        ),
+
+        "top_features": state.get(
+            "top_features"
+        ),
+        "community_id": state.get(
+            "community_id"
+        ),
+        "hop_distance_to_blacklist": state.get(
+            "hop_distance_to_blacklist"
+        ),
+        "fan_out": state.get(
+            "fan_out"
+        ),
+        "suspicious_path": state.get(
+            "suspicious_path"
+        ),
+
+        "name_similarity_warning": state.get(
+            "name_similarity_warning"
+        ),
+        "name_similarity_score": state.get(
+            "name_similarity_score"
+        ),
+
+        "legal_citations": state.get(
+            "legal_citations"
+        ),
     }
 
-    prompt = f"""Bạn là trợ lý giải thích cho chuyên viên AML. Dưới đây là dữ liệu đã được
-hệ thống tính toán sẵn cho 1 giao dịch (định dạng JSON):
+    prompt = f"""
+Bạn là trợ lý giải thích cho chuyên viên AML.
 
-{_json.dumps(context, ensure_ascii=False, indent=2, default=str)}
+Dữ liệu hệ thống đã tính toán cho giao dịch:
 
-Câu hỏi của chuyên viên: "{payload.question}"
+{json.dumps(
+    context,
+    ensure_ascii=False,
+    indent=2,
+    default=str,
+)}
 
-Hãy tổng hợp, giải thích bằng ngôn ngữ nghiệp vụ dễ hiểu, và đưa khuyến nghị hành động cụ thể
-nếu câu hỏi yêu cầu (VD: có nên lập STR không). CHỈ được dùng dữ liệu trong JSON trên, không suy
-diễn hay bịa thêm số liệu/căn cứ pháp lý nào khác. Nếu câu hỏi hỏi về 1 thực thể/địa chỉ/dịch vụ
-KHÔNG có trong dữ liệu trên (VD: không có trong kyc_flags), phải trả lời rõ "chưa được kiểm tra
-trong phạm vi dữ liệu hiện có" -- TUYỆT ĐỐI không khẳng định "không liên quan" nếu chưa thực sự
-được kiểm tra, vì đây là hồ sơ AML và 1 câu trả lời sai kiểu này là 1 false negative thật."""
+Câu hỏi của chuyên viên:
+"{payload.question}"
+
+Chỉ sử dụng dữ liệu trong JSON trên.
+
+Không được:
+- tự tạo số liệu;
+- tự tạo căn cứ pháp lý;
+- tự thay đổi decision;
+- tự biến fuzzy name match thành sanctions match;
+- khẳng định một địa chỉ/thực thể đã được kiểm tra nếu JSON không chứa bằng chứng tương ứng.
+
+Nếu dữ liệu không đủ để trả lời, phải nói rõ:
+"Chưa được kiểm tra trong phạm vi dữ liệu hiện có."
+
+Giải thích bằng ngôn ngữ nghiệp vụ AML, ngắn gọn và rõ ràng.
+"""
 
     try:
         answer = call_llm_api(prompt)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi gọi LLM: {e}")
 
-    return ChatResponse(answer=answer)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi gọi LLM: {exc}",
+        )
+
+    return ChatResponse(
+        answer=answer,
+    )
 
 
 # =============================================================================
-# --- Phục vụ giao diện HTML/JS thuần (thay thế Vite dev server) ---
+# FRONTEND
 # =============================================================================
-# Đặt SAU tất cả route /api/* ở trên -- FastAPI khớp route theo thứ tự khai
-# báo, nên mount "/" ở cuối cùng không che mất các route API phía trên.
-_HTML_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend_html")
+
+_HTML_DIR = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "frontend_html",
+    )
+)
 
 
 @app.get("/")
 def serve_ui() -> FileResponse:
-    return FileResponse(os.path.join(_HTML_DIR, "index.html"))
+    return FileResponse(
+        os.path.join(
+            _HTML_DIR,
+            "index.html",
+        )
+    )
 
 
-app.mount("/static", StaticFiles(directory=_HTML_DIR), name="static")
+app.mount(
+    "/static",
+    StaticFiles(directory=_HTML_DIR),
+    name="static",
+)
 
-ALLOWED_ORIGINS = ["*"]  # cùng origin (FastAPI tự phục vụ HTML) -- CORS gần như không cần nữa
+
+# =============================================================================
+# CORS
+# =============================================================================
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

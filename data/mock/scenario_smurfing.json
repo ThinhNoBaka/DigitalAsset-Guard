@@ -1,0 +1,301 @@
+{
+  "scenario": "smurfing",
+  "description": "1 giao dịch gốc 2 tỷ VND bị chia thành 20 giao dịch nhỏ (mỗi cái < 500tr để né ngưỡng báo cáo đơn lẻ Thông tư 27), gửi vào 10 ví trung gian, sau đó gộp dòng tiền về lại 1 ví đích.",
+  "legs": [
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_01",
+      "amount_vnd": 95100000,
+      "timestamp": 1735000060
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_01",
+      "amount_vnd": 95050000,
+      "timestamp": 1735000090
+    },
+    {
+      "from": "0xsmurf_mid_01",
+      "to": "0xsmurf_convergence_dest",
+      "amount_vnd": 185100000,
+      "timestamp": 1735003660
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_02",
+      "amount_vnd": 95200000,
+      "timestamp": 1735000120
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_02",
+      "amount_vnd": 95100000,
+      "timestamp": 1735000150
+    },
+    {
+      "from": "0xsmurf_mid_02",
+      "to": "0xsmurf_convergence_dest",
+      "amount_vnd": 185200000,
+      "timestamp": 1735003720
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_03",
+      "amount_vnd": 95300000,
+      "timestamp": 1735000180
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_03",
+      "amount_vnd": 95150000,
+      "timestamp": 1735000210
+    },
+    {
+      "from": "0xsmurf_mid_03",
+      "to": "0xsmurf_convergence_dest",
+      "amount_vnd": 185300000,
+      "timestamp": 1735003780
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_04",
+      "amount_vnd": 95400000,
+      "timestamp": 1735000240
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_04",
+      "amount_vnd": 95200000,
+      "timestamp": 1735000270
+    },
+    {
+      "from": "0xsmurf_mid_04",
+      "to": "0xsmurf_convergence_dest",
+      "amount_vnd": 185400000,
+      "timestamp": 1735003840
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_05",
+      "amount_vnd": 95500000,
+      "timestamp": 1735000300
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_05",
+      "amount_vnd": 95250000,
+      "timestamp": 1735000330
+    },
+    {
+      "from": "0xsmurf_mid_05",
+      "to": "0xsmurf_convergence_dest",
+      "amount_vnd": 185500000,
+      "timestamp": 1735003900
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_06",
+      "amount_vnd": 95600000,
+      "timestamp": 1735000360
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_06",
+      "amount_vnd": 95300000,
+      "timestamp": 1735000390
+    },
+    {
+      "from": "0xsmurf_mid_06",
+      "to": "0xsmurf_convergence_dest",
+      "amount_vnd": 185600000,
+      "timestamp": 1735003960
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_07",
+      "amount_vnd": 95700000,
+      "timestamp": 1735000420
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_07",
+      "amount_vnd": 95350000,
+      "timestamp": 1735000450
+    },
+    {
+      "from": "0xsmurf_mid_07",
+      "to": "0xsmurf_convergence_dest",
+      "amount_vnd": 185700000,
+      "timestamp": 1735004020
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_08",
+      "amount_vnd": 95800000,
+      "timestamp": 1735000480
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_08",
+      "amount_vnd": 95400000,
+      "timestamp": 1735000510
+    },
+    {
+      "from": "0xsmurf_mid_08",
+      "to": "0xsmurf_convergence_dest",
+      "amount_vnd": 185800000,
+      "timestamp": 1735004080
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_09",
+      "amount_vnd": 95900000,
+      "timestamp": 1735000540
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_09",
+      "amount_vnd": 95450000,
+      "timestamp": 1735000570
+    },
+    {
+      "from": "0xsmurf_mid_09",
+      "to": "0xsmurf_convergence_dest",
+      "amount_vnd": 185900000,
+      "timestamp": 1735004140
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_10",
+      "amount_vnd": 96000000,
+      "timestamp": 1735000600
+    },
+    {
+      "from": "0xsmurf_source_wallet",
+      "to": "0xsmurf_mid_10",
+      "amount_vnd": 95500000,
+      "timestamp": 1735000630
+    },
+    {
+      "from": "0xsmurf_mid_10",
+      "to": "0xsmurf_convergence_dest",
+      "amount_vnd": 186000000,
+      "timestamp": 1735004200
+    }
+  ],
+  "graph_edges": [
+    [
+      "0xsmurf_source_wallet",
+      "0xsmurf_mid_01",
+      190150000
+    ],
+    [
+      "0xsmurf_mid_01",
+      "0xsmurf_convergence_dest",
+      185100000
+    ],
+    [
+      "0xsmurf_source_wallet",
+      "0xsmurf_mid_02",
+      190300000
+    ],
+    [
+      "0xsmurf_mid_02",
+      "0xsmurf_convergence_dest",
+      185200000
+    ],
+    [
+      "0xsmurf_source_wallet",
+      "0xsmurf_mid_03",
+      190450000
+    ],
+    [
+      "0xsmurf_mid_03",
+      "0xsmurf_convergence_dest",
+      185300000
+    ],
+    [
+      "0xsmurf_source_wallet",
+      "0xsmurf_mid_04",
+      190600000
+    ],
+    [
+      "0xsmurf_mid_04",
+      "0xsmurf_convergence_dest",
+      185400000
+    ],
+    [
+      "0xsmurf_source_wallet",
+      "0xsmurf_mid_05",
+      190750000
+    ],
+    [
+      "0xsmurf_mid_05",
+      "0xsmurf_convergence_dest",
+      185500000
+    ],
+    [
+      "0xsmurf_source_wallet",
+      "0xsmurf_mid_06",
+      190900000
+    ],
+    [
+      "0xsmurf_mid_06",
+      "0xsmurf_convergence_dest",
+      185600000
+    ],
+    [
+      "0xsmurf_source_wallet",
+      "0xsmurf_mid_07",
+      191050000
+    ],
+    [
+      "0xsmurf_mid_07",
+      "0xsmurf_convergence_dest",
+      185700000
+    ],
+    [
+      "0xsmurf_source_wallet",
+      "0xsmurf_mid_08",
+      191200000
+    ],
+    [
+      "0xsmurf_mid_08",
+      "0xsmurf_convergence_dest",
+      185800000
+    ],
+    [
+      "0xsmurf_source_wallet",
+      "0xsmurf_mid_09",
+      191350000
+    ],
+    [
+      "0xsmurf_mid_09",
+      "0xsmurf_convergence_dest",
+      185900000
+    ],
+    [
+      "0xsmurf_source_wallet",
+      "0xsmurf_mid_10",
+      191500000
+    ],
+    [
+      "0xsmurf_mid_10",
+      "0xsmurf_convergence_dest",
+      186000000
+    ]
+  ],
+  "blacklisted_wallets": [],
+  "evaluated_transaction": {
+    "tx_hash": null,
+    "wallet_from": "0xsmurf_mid_03",
+    "wallet_to": "0xsmurf_convergence_dest",
+    "amount_vnd": 185300000,
+    "fullname": "Nguyen Van A",
+    "id_number": "012345678901",
+    "account_number": "1000000001"
+  },
+  "expected": {
+    "graph_assistant": "10 ví 0xsmurf_mid_01..10 phải nằm CHUNG 1 community_id với 0xsmurf_convergence_dest (Louvain resolution=0.5 cho đồ thị mock, xem agents/graph_aml.py). blacklisted_wallets rỗng nên hop_distance=None, graph_score=0.0 (không có ví đen để PPR personalization) — kịch bản này chủ đích test Louvain, không test graph exposure."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "threshold": 0.0009,
+  "target_recall": 0.9,
+  "achieved_recall": 0.9003,
+  "achieved_precision": 0.21,
+  "calibrated_on_file": "data\\raw\\elliptic\\elliptic_test.csv",
+  "calibrated_on_n_samples": 16670,
+  "calibrated_on_n_positive": 1083
+}

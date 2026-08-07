@@ -1,0 +1,19 @@
+{
+  "scenario": "name_similarity",
+  "description": "Khách hàng mock fullname=\"Rafael Caro Kintero\" gần giống entity THẬT trong sdn.xml mẫu (\"Rafael CARO QUINTERO\", uid 6707) -- không trùng tuyệt đối, dùng để kiểm tra fuzzy matching Levenshtein ở core/name_screening.py TRƯỚC khi băm PII.",
+  "legs": [],
+  "graph_edges": [],
+  "blacklisted_wallets": [],
+  "evaluated_transaction": {
+    "tx_hash": null,
+    "wallet_from": "0xname_similarity_wallet_from",
+    "wallet_to": "0xname_similarity_wallet_to",
+    "amount_vnd": 650000000,
+    "fullname": "Rafael Caro Kintero",
+    "id_number": "079099001234",
+    "account_number": "3000000099"
+  },
+  "expected": {
+    "name_similarity": "name_similarity_warning phải = True (so khớp mờ với \"Rafael CARO QUINTERO\" thật trong sdn.xml), % tương đồng Levenshtein thật ghi lại ở state[\"name_similarity_score\"] (core/name_screening.py) -- không làm tròn tuỳ ý. Đây là tín hiệu THÔNG TIN cho Decision Engine (evidence), KHÔNG tự kích hoạt REPORT — kyc_flags/kyc_risk_score đã bỏ khỏi kiến trúc."
+  }
+}
