@@ -1,0 +1,8 @@
+LOGIN=200
+PIPELINE=200
+TX_HASH=4376436de18c2528001f19befe3f1b23
+STATE_STATUS=200
+GRAPH_SCORE_IN_STATE=0.0
+DECISION=PASS
+CHAT_STATUS=200
+CHAT_ANSWER=PPR (Personalized PageRank) là mức độ liên quan của ví này tới các ví seed/rủi ro theo thuật toán Personalized PageRank, được thể hiện qua trường "graph_score" trong dữ liệu. Trong trường hợp này, giá trị graph_score là 0.0.

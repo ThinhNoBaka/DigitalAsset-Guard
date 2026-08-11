@@ -1,14 +1,19 @@
 # agents/calibrate_classifier_threshold.py
 """
 Calibrate ngưỡng classifier_score dùng trong Decision Engine (Rule 4) bằng
-precision-recall curve trên Elliptic test set — dataset CÓ ground truth
+precision-recall curve trên test set — dataset CÓ ground truth
 thật (illicit/licit), khác với graph_score (không có dữ liệu ghép cặp để
 calibrate — xem docstring đầu agents/decision_engine.py để biết lý do
 project đổi sang kiến trúc rule-based thay vì weighted-sum ensemble).
 
+[THAY ĐỔI 2026-08-08] Chuyển từ Elliptic sang Ethereum Fraud Detection:
+test set dùng chung là data/processed/ethereum_fraud_test.csv (được
+agents/train_classifier.py tách stratified 20% và ghi ra khi train), nhãn
+là cột FLAG (1 = illicit/fraud, 0 = licit).
+
 CÁCH DÙNG:
     python -m agents.calibrate_classifier_threshold \
-        --test-csv data/raw/elliptic/elliptic_test.csv \
+        --test-csv data/processed/ethereum_fraud_test.csv \
         --target-recall 0.9
 
 Script:
@@ -38,7 +43,7 @@ from core.config import MODELS_DIR
 MODEL_PATH = MODELS_DIR / "xgboost_aml.pkl"
 OUTPUT_PATH = MODELS_DIR / "classifier_threshold.json"
 
-LABEL_COLUMN_CANDIDATES = ["label", "class", "illicit", "is_illicit", "target"]
+LABEL_COLUMN_CANDIDATES = ["label", "class", "illicit", "is_illicit", "target", "FLAG"]
 
 
 def _find_label_column(df: pd.DataFrame) -> str:
@@ -158,7 +163,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--test-csv",
         required=True,
-        help="Đường dẫn CSV test set (vd: data/raw/elliptic/elliptic_test.csv).",
+        help="Đường dẫn CSV test set (vd: data/processed/ethereum_fraud_test.csv).",
     )
     parser.add_argument(
         "--target-recall",

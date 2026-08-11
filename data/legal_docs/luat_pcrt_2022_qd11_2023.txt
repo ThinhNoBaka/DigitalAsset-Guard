@@ -1,0 +1,139 @@
+LUẬT PHÒNG, CHỐNG RỬA TIỀN 2022 (SỐ 14/2022/QH15)
++ QUYẾT ĐỊNH 11/2023/QĐ-TTg
+(Trích xuất phục vụ Legal RAG — DigitalAsset Guard)
+
+============================================================
+METADATA
+============================================================
+source_id: LUAT_PCRT_2022_QD_11_2023
+source_type: PRIMARY_LEGAL
+authority: Quốc hội (Luật) / Thủ tướng Chính phủ (Quyết định)
+document_number: 14/2022/QH15 (Luật) + 11/2023/QĐ-TTg (Quyết định)
+issue_date: 2022-11-15 (Luật) / 2023-04-27 (Quyết định)
+effective_date: 2023-03-01 (Luật) / 2023-12-01 (Quyết định)
+domain: phòng, chống rửa tiền — văn bản GỐC mà Thông tư 27/2025/TT-NHNN hướng dẫn thi hành
+
+IMPORTANT_SOURCE_NOTE:
+- Đây là văn bản LUẬT + QUYẾT ĐỊNH gốc, cấp cao hơn Thông tư 27/2025/TT-NHNN.
+- Thông tư 27/2025/TT-NHNN CỐ Ý không nhắc lại con số ngưỡng cụ thể (400 triệu) vì
+  thẩm quyền quy định mức cụ thể thuộc Quyết định của Thủ tướng Chính phủ, không
+  thuộc Thông tư của NHNN — đây là lý do Thông tư 27 chỉ dẫn chiếu, không tự nêu số.
+- Nguồn NÀY mới là nơi có căn cứ hợp lệ để nói "ngưỡng 400 triệu đồng".
+- Chỉ dùng nguồn này để xác nhận NGƯỠNG SỐ. Về thủ tục/hình thức báo cáo cụ thể vẫn
+  ưu tiên Thông tư 27/2025/TT-NHNN (văn bản hướng dẫn thi hành, chi tiết hơn).
+
+============================================================
+ĐIỀU 3 (KHOẢN 3) LUẬT PHÒNG, CHỐNG RỬA TIỀN 2022 — ĐỊNH NGHĨA
+============================================================
+"Giao dịch có giá trị lớn phải báo cáo" là giao dịch bằng tiền mặt hoặc ngoại tệ
+tiền mặt được thực hiện một hoặc nhiều lần trong một ngày, có tổng giá trị bằng
+hoặc vượt mức do Thủ tướng Chính phủ quy định theo từng thời kỳ.
+
+LEGAL_REFERENCE:
+Khoản 3 Điều 3 Luật Phòng, chống rửa tiền 2022 (số 14/2022/QH15).
+
+============================================================
+ĐIỀU 25 LUẬT PHÒNG, CHỐNG RỬA TIỀN 2022 — BÁO CÁO GIAO DỊCH GIÁ TRỊ LỚN
+============================================================
+1. Đối tượng báo cáo có trách nhiệm báo cáo Ngân hàng Nhà nước Việt Nam khi
+   thực hiện các giao dịch có giá trị lớn phải báo cáo.
+2. Thủ tướng Chính phủ quyết định mức giao dịch có giá trị lớn phải báo cáo
+   phù hợp với điều kiện kinh tế - xã hội trong từng thời kỳ.
+3. Thống đốc Ngân hàng Nhà nước Việt Nam quy định chế độ báo cáo về giao dịch
+   có giá trị lớn phải báo cáo (→ cụ thể hóa tại Thông tư 27/2025/TT-NHNN, Điều 6).
+
+LEGAL_REFERENCE:
+Điều 25 Luật Phòng, chống rửa tiền 2022.
+
+============================================================
+ĐIỀU 26 LUẬT PHÒNG, CHỐNG RỬA TIỀN 2022 — GIAO DỊCH ĐÁNG NGỜ (STR)
+============================================================
+Quy định nghĩa vụ báo cáo giao dịch đáng ngờ của đối tượng báo cáo khi có cơ sở
+hợp lý để nghi ngờ tài sản trong giao dịch liên quan đến rửa tiền. Đây là căn cứ
+LUẬT cấp cao cho nghĩa vụ STR — được Thông tư 27/2025/TT-NHNN cụ thể hóa tại Điều 7.
+
+IMPORTANT:
+Nghĩa vụ báo cáo giao dịch đáng ngờ theo Điều 26 KHÔNG phụ thuộc vào giá trị
+giao dịch — khác biệt căn bản với Điều 25 (giao dịch giá trị lớn, có ngưỡng số).
+Một giao dịch giá trị nhỏ vẫn phải báo cáo STR nếu có dấu hiệu đáng ngờ.
+
+LEGAL_REFERENCE:
+Điều 26 Luật Phòng, chống rửa tiền 2022.
+
+============================================================
+ĐIỀU 37 LUẬT PHÒNG, CHỐNG RỬA TIỀN 2022 — THỜI HẠN BÁO CÁO
+============================================================
+1. Báo cáo giao dịch có giá trị lớn (Điều 25) và giao dịch chuyển tiền điện tử
+   (Điều 34): trong 01 ngày làm việc (báo cáo điện tử) hoặc 02 ngày làm việc
+   (văn bản giấy) kể từ ngày phát sinh giao dịch.
+2. Báo cáo giao dịch đáng ngờ (Điều 26): trong 03 ngày làm việc kể từ ngày phát
+   sinh giao dịch, hoặc 01 ngày làm việc kể từ ngày phát hiện giao dịch đáng ngờ.
+
+IMPORTANT:
+Thời hạn 03 ngày làm việc (Điều 37 khoản 2, cấp Luật) khác với "trước 16 giờ
+ngày làm việc tiếp theo" (Thông tư 27, Điều 10, cấp Thông tư — áp dụng cho hình
+thức báo cáo dữ liệu điện tử cụ thể). Không được nhầm lẫn 2 mốc thời hạn này.
+
+LEGAL_REFERENCE:
+Điều 37 Luật Phòng, chống rửa tiền 2022.
+
+============================================================
+QUYẾT ĐỊNH 11/2023/QĐ-TTg — MỨC GIAO DỊCH GIÁ TRỊ LỚN CỤ THỂ
+============================================================
+Quyết định của Thủ tướng Chính phủ (ban hành 27/4/2023, hiệu lực 01/12/2023),
+cụ thể hóa khoản 2 Điều 25 Luật PCRT 2022:
+
+Mức giá trị của giao dịch có giá trị lớn phải báo cáo: 400.000.000 (bốn trăm
+triệu) đồng trở lên.
+
+(Mức này thay thế mức 300.000.000 đồng áp dụng trước 01/12/2023.)
+
+Đối tượng phải báo cáo khi đạt mức trên (Điều 2 Quyết định 11/2023/QĐ-TTg):
+tổ chức tài chính và tổ chức/cá nhân kinh doanh ngành nghề phi tài chính có
+liên quan theo khoản 1, khoản 2 Điều 4 Luật Phòng, chống rửa tiền 2022.
+
+IMPORTANT:
+Đây là nguồn HỢP LỆ DUY NHẤT trong bộ tài liệu RAG hiện tại để khẳng định con số
+"400 triệu đồng". KHÔNG được suy ra con số này từ Thông tư 27/2025/TT-NHNN (Thông
+tư đó không tự nêu số — xem IMPORTANT_SOURCE_NOTE ở đầu file).
+
+LEGAL_REFERENCE:
+Quyết định số 11/2023/QĐ-TTg ngày 27/4/2023 của Thủ tướng Chính phủ.
+
+============================================================
+LEGAL-RAG BOUNDARY RULES
+============================================================
+
+RULE 1:
+Khi cần khẳng định "giao dịch có giá trị lớn / đạt ngưỡng 400 triệu", PHẢI trích
+nguồn từ file này (Quyết định 11/2023/QĐ-TTg), KHÔNG trích từ Thông tư 27.
+
+RULE 2:
+Trước khi khẳng định một giao dịch "đạt/không đạt ngưỡng giá trị lớn", PHẢI tự
+đối chiếu amount_vnd của giao dịch với mức 400.000.000 đồng nêu tại đây. Nếu
+amount_vnd < 400.000.000, PHẢI khẳng định RÕ RÀNG là "KHÔNG thuộc diện báo cáo
+giao dịch giá trị lớn theo Điều 25 Luật PCRT / Quyết định 11/2023/QĐ-TTg".
+
+RULE 3:
+Nghĩa vụ báo cáo giao dịch đáng ngờ (Điều 26 Luật, Điều 7 Thông tư 27) KHÔNG phụ
+thuộc ngưỡng 400 triệu. Khi hệ thống có bằng chứng đáng ngờ (VD: kết nối tới ví
+sanctioned trên đồ thị dòng tiền), căn cứ chính phải là Điều 26 Luật PCRT / Điều 7
+Thông tư 27 — không phải Điều 25 Luật PCRT / Điều 6 Thông tư 27 — bất kể giá trị
+giao dịch là bao nhiêu.
+
+RULE 4:
+Không nhầm lẫn thời hạn báo cáo cấp Luật (Điều 37: 1-3 ngày làm việc) với thời
+hạn báo cáo dữ liệu điện tử cấp Thông tư (Điều 10 Thông tư 27: trước 16h ngày
+làm việc tiếp theo) — nêu rõ đang trích thời hạn theo văn bản nào.
+
+============================================================
+SOURCE
+============================================================
+Luật Phòng, chống rửa tiền 2022 (số 14/2022/QH15), Quốc hội khóa XV, hiệu lực
+01/03/2023.
+Quyết định số 11/2023/QĐ-TTg, Thủ tướng Chính phủ, ban hành 27/04/2023, hiệu
+lực 01/12/2023.
+Nguồn đối chiếu web: Thư Viện Pháp Luật.
+Ghi chú: Đây là bản trích xuất tóm tắt phục vụ demo PoC — cần đối chiếu văn bản
+đầy đủ tại https://thuvienphapluat.vn hoặc https://vanban.chinhphu.vn trước khi
+dùng cho báo cáo pháp lý chính thức ngoài phạm vi PoC.

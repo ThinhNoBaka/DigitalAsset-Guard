@@ -1,111 +1,535 @@
-FATF RECOMMENDATIONS — TRÍCH XUẤT CÁC KHUYẾN NGHỊ LIÊN QUAN
-(Financial Action Task Force on Money Laundering)
+FATF — AML/CFT STANDARDS RELEVANT TO DIGITAL ASSET GUARD
+============================================================
 
-Dùng cho mục đích demo PoC nghiên cứu DigitalAsset Guard
+DOCUMENT TYPE
+-------------
+Curated Legal/Compliance RAG knowledge base.
 
-===================================================================
+PRIMARY ORGANIZATION
+--------------------
+Financial Action Task Force (FATF)
 
-KHUYẾN NGHỊ 1: ĐÁNH GIÁ RỦI RO VÀ ÁP DỤNG PHƯƠNG PHÁP DỰA TRÊN RỦI RO
+IMPORTANT STATUS
+----------------
+- FATF Recommendations: official international standards, last updated October 2025.
+- Virtual Assets Red Flag Indicators: FATF report, September 2020.
+- Updated Guidance for a Risk-Based Approach to Virtual Assets and Virtual Asset Service Providers: October 2021.
+- 2025 Targeted Update on Implementation of the FATF Standards on VAs and VASPs: June 2025.
+- Targeted Report on Stablecoins and Unhosted Wallets / P2P Transactions: March 2026.
 
-Quốc gia và tổ chức tài chính phải:
-- Xác định, đánh giá và hiểu rủi ro rửa tiền/tài trợ khủng bố (ML/TF);
-- Áp dụng biện pháp phòng chống tương xứng với mức độ rủi ro;
-- Phân bổ nguồn lực hiệu quả cho các lĩnh vực rủi ro cao.
+IMPORTANT LEGAL STATUS
+----------------------
+FATF Recommendations are international standards, not Vietnamese legislation.
+They should NOT be described as "Vietnamese law", "a Vietnamese regulation",
+or as a substitute for Vietnamese legal instruments.
 
-Đối với tài sản ảo (Virtual Asset - VA) và nhà cung cấp dịch vụ tài sản ảo (VASP):
-- Áp dụng đầy đủ các biện pháp AML/CFT tương đương tổ chức tài chính truyền thống.
+For DigitalAsset Guard:
+- Vietnamese legal conclusion -> cite the relevant Vietnamese law/regulation.
+- FATF conclusion -> explicitly identify the relevant FATF Recommendation,
+  Interpretive Note, Guidance, or FATF report.
+- System-derived graph/risk signals -> label as SYSTEM_DERIVED.
+- Do not turn a FATF indicator into a claim that Vietnamese law automatically
+  requires an STR for that pattern.
 
-===================================================================
+============================================================
+1. RECOMMENDATION 1 — RISK-BASED APPROACH
+============================================================
 
-KHUYẾN NGHỊ 10: NHẬN BIẾT KHÁCH HÀNG (CDD - Customer Due Diligence)
+CORE PRINCIPLE
+--------------
+Countries, financial institutions and relevant obliged entities should identify,
+assess and understand money laundering and terrorist financing risks and apply
+risk-based measures proportionate to the risks identified.
 
-Tổ chức tài chính phải thực hiện CDD khi:
-a) Thiết lập mối quan hệ kinh doanh;
-b) Thực hiện giao dịch vượt ngưỡng quy định (USD 15,000 hoặc tương đương);
-c) Có nghi ngờ rửa tiền hoặc tài trợ khủng bố;
-d) Có nghi ngờ về tính chính xác của thông tin nhận dạng.
+For virtual assets and VASPs, risk assessment and mitigation should consider:
+- the nature of virtual asset activities;
+- the activities and operations of VASPs;
+- the interaction between VAs/VASPs and traditional financial institutions;
+- relevant geographic, customer, product/service and delivery-channel risks.
 
-Biện pháp CDD bao gồm:
-1. Xác minh danh tính khách hàng bằng tài liệu, dữ liệu hoặc thông tin đáng tin cậy;
-2. Xác minh chủ sở hữu hưởng lợi (beneficial owner);
-3. Hiểu và lưu giữ thông tin về mục đích và bản chất mối quan hệ kinh doanh;
-4. Giám sát liên tục mối quan hệ kinh doanh.
+DIGITALASSET GUARD APPLICATION
+------------------------------
+Use Recommendation 1 as international AML context for:
+- risk scoring;
+- customer risk assessment;
+- transaction monitoring;
+- graph-based risk analysis;
+- prioritisation of high-risk cases.
 
-===================================================================
+IMPORTANT:
+A DigitalAsset Guard risk score is a SYSTEM_DERIVED assessment.
+It must not be presented as a FATF-defined score.
 
-KHUYẾN NGHỊ 15: CÔNG NGHỆ MỚI — TÀI SẢN ẢO VÀ VASP
+============================================================
+2. RECOMMENDATION 10 — CUSTOMER DUE DILIGENCE (CDD)
+============================================================
 
-Khuyến nghị 15 (cập nhật 2019, 2021) quy định:
+CORE CDD MEASURES
+-----------------
+Financial institutions must undertake customer due diligence in the situations
+specified by the FATF Standards, including:
+- when establishing business relations;
+- when carrying out applicable occasional transactions;
+- when there is a suspicion of ML/TF;
+- when there are doubts about the veracity or adequacy of previously obtained
+  customer identification data.
 
-1. Quốc gia phải đánh giá và giảm thiểu rủi ro ML/TF liên quan đến tài sản ảo (VA).
-2. VASP phải được cấp phép hoặc đăng ký tại quốc gia nơi thành lập.
-3. VASP phải tuân thủ đầy đủ các khuyến nghị FATF tương đương tổ chức tài chính.
-4. Quốc gia phải giám sát VASP và áp dụng các biện pháp chế tài.
+CDD includes, as applicable:
+1. Identifying the customer and verifying identity using reliable,
+   independent source documents, data or information.
+2. Identifying the beneficial owner and taking reasonable measures to verify
+   the beneficial owner's identity.
+3. Understanding and, where appropriate, obtaining information on the purpose
+   and intended nature of the business relationship.
+4. Conducting ongoing due diligence and scrutiny of transactions throughout
+   the relationship to ensure consistency with the institution's knowledge of
+   the customer, their business and risk profile, including source of funds
+   where appropriate.
 
-Ghi chú diễn giải (INR.15):
-- VA bao gồm: Bitcoin, Ethereum, stablecoin (USDT, USDC), token.
-- VASP bao gồm: sàn giao dịch, ví lưu ký, dịch vụ chuyển đổi VA.
-- Giao dịch P2P (ví tự quản - unhosted wallet) là rủi ro đặc biệt cần lưu ý.
+VIRTUAL-ASSET CONTEXT
+---------------------
+For VASPs, FATF guidance applies the relevant preventive measures in
+Recommendations 10 to 21 in the same general manner as for financial
+institutions, with specific qualifications for virtual-asset activity.
 
-===================================================================
+The FATF's VA guidance identifies USD/EUR 1,000 as the relevant occasional-
+transaction CDD threshold for VA transactions under the FATF framework,
+rather than the general USD/EUR 15,000 threshold.
 
-KHUYẾN NGHỊ 16: TRAVEL RULE — QUY TẮC CHUYỂN TIỀN ĐIỆN TỬ
+IMPORTANT:
+This FATF threshold is an international FATF standard/context. It must NOT be
+automatically substituted for a threshold in Vietnamese law.
 
-Mục đích: Đảm bảo thông tin người gửi và người nhận đi kèm theo giao dịch,
-cho phép truy vết dòng tiền khi cần thiết.
+DIGITALASSET GUARD APPLICATION
+------------------------------
+Relevant inputs:
+- KYC identity;
+- beneficial ownership;
+- customer profile;
+- stated purpose;
+- transaction history;
+- source of funds where available;
+- geographic exposure;
+- consistency between customer profile and observed blockchain activity.
 
-Yêu cầu cho giao dịch tài sản ảo:
-1. Giao dịch VA có giá trị từ USD 1,000 / EUR 1,000 trở lên phải kèm theo:
-   - Thông tin người gửi: Tên, số tài khoản/ví, địa chỉ hoặc mã nhận dạng quốc gia;
-   - Thông tin người nhận: Tên, số tài khoản/ví.
+============================================================
+3. RECOMMENDATION 15 — NEW TECHNOLOGIES, VIRTUAL ASSETS AND VASPs
+============================================================
 
-2. VASP gửi (Originating VASP) phải:
-   - Thu thập và xác minh thông tin người gửi;
-   - Gửi thông tin kèm theo giao dịch cho VASP nhận.
+CORE PRINCIPLE
+--------------
+FATF revised Recommendation 15 and its Interpretive Note to apply AML/CFT
+measures to virtual assets and virtual asset service providers.
 
-3. VASP nhận (Beneficiary VASP) phải:
-   - Xác minh thông tin người nhận;
-   - Từ chối hoặc giữ lại giao dịch nếu thiếu thông tin bắt buộc.
+COUNTRY-LEVEL EXPECTATIONS
+--------------------------
+Countries should:
+- identify and assess ML/TF risks arising from relevant VA activities and
+  VASPs;
+- take appropriate measures to manage and mitigate those risks;
+- require VASPs to be licensed or registered as required by the FATF framework;
+- subject VASPs to appropriate regulation, supervision or monitoring;
+- ensure that relevant AML/CFT preventive measures apply to VASPs.
 
-4. Đối với giao dịch dưới ngưỡng:
-   - Vẫn phải lưu giữ thông tin cơ bản;
-   - Giám sát các giao dịch chia nhỏ (structuring) để tránh ngưỡng.
+VASP SCOPE
+----------
+FATF defines a VASP by reference to specified activities performed as a
+business for or on behalf of another natural or legal person, including
+relevant exchange, transfer, safekeeping/administration, and financial-service
+activities connected with an issuer's offer or sale of a virtual asset.
 
-===================================================================
+Do not invent a broader VASP definition from examples alone.
 
-KHUYẾN NGHỊ 20: BÁO CÁO GIAO DỊCH ĐÁNG NGỜ (STR)
+VIRTUAL ASSET SCOPE
+-------------------
+FATF's framework applies to "virtual assets" as defined in the FATF Standards.
+Examples commonly discussed in FATF materials include crypto-assets such as
+Bitcoin and other relevant digital assets, but the exact legal classification
+must follow the FATF definition and the applicable national law.
 
-1. Tổ chức tài chính và VASP phải báo cáo đơn vị tình báo tài chính (FIU)
-   khi nghi ngờ hoặc có cơ sở hợp lý nghi ngờ tài sản:
-   a) Là thu nhập từ hoạt động phạm tội; hoặc
-   b) Liên quan đến tài trợ khủng bố.
+P2P / UNHOSTED WALLETS
+----------------------
+FATF guidance identifies peer-to-peer transactions and transactions involving
+unhosted wallets as areas requiring risk-based attention.
 
-2. Nghĩa vụ báo cáo áp dụng bất kể giá trị giao dịch.
+IMPORTANT:
+An unhosted wallet is NOT automatically illicit.
+Risk must be assessed using the surrounding facts and circumstances.
 
-3. Tổ chức báo cáo được bảo vệ trước trách nhiệm pháp lý
-   khi báo cáo STR một cách thiện chí (good faith reporting).
+DIGITALASSET GUARD APPLICATION
+------------------------------
+Relevant system capabilities:
+- wallet/entity risk assessment;
+- sanctions screening;
+- graph analysis;
+- exposure analysis;
+- transaction monitoring;
+- risk-based investigation prioritisation.
 
-===================================================================
+============================================================
+4. RECOMMENDATION 16 — PAYMENT TRANSPARENCY / TRAVEL RULE
+============================================================
 
-DẤU HIỆU CẢNH BÁO (RED FLAGS) CHO GIAO DỊCH TÀI SẢN MÃ HÓA
+CORE PRINCIPLE
+--------------
+Recommendation 16 establishes requirements concerning information that should
+accompany qualifying transfers so that relevant information about the
+originator and beneficiary is available and can support financial-crime
+controls.
 
-FATF Virtual Assets Red Flag Indicators (2020):
+VIRTUAL-ASSET APPLICATION
+-------------------------
+For VA transfers, the FATF framework applies Recommendation 16 in a modified
+form commonly referred to as the "Travel Rule".
 
-Dấu hiệu liên quan đến giao dịch:
-1. Giao dịch chia nhỏ có cấu trúc (structuring) gần dưới ngưỡng báo cáo;
-2. Chuyển đổi nhanh giữa nhiều loại VA (chain-hopping);
-3. Giao dịch qua mixer/tumbler/CoinJoin để che dấu nguồn gốc;
-4. Giao dịch từ/đến ví nằm trong danh sách trừng phạt (OFAC, UN, EU);
-5. Giao dịch có cấu trúc fan-out (1→N) hoặc fan-in (N→1) bất thường;
-6. Vòng lặp dòng tiền khép kín (circular flow) qua nhiều ví trung gian.
+Relevant information can include information necessary to identify the
+originator and beneficiary and to support the required transfer of information
+between obliged entities.
 
-Dấu hiệu liên quan đến khách hàng:
-1. Khách hàng không cung cấp hoặc cung cấp thông tin KYC giả/mờ;
-2. Khách hàng sử dụng nhiều ví từ nhiều quốc gia khác nhau;
-3. Giao dịch không phù hợp với hồ sơ rủi ro và hoạt động kinh doanh khai báo;
-4. Khách hàng yêu cầu chuyển đổi VA sang tiền pháp định ngay lập tức.
+FATF guidance states that the Travel Rule applies to VASPs and other obliged
+entities engaging in qualifying VA transfers.
 
-===================================================================
+THRESHOLD CAUTION
+-----------------
+FATF materials have used a USD/EUR 1,000 de minimis threshold for relevant
+VA-transfer requirements in the implementation framework.
 
-Ghi chú: Đây là bản trích xuất tóm tắt dùng cho mục đích demo nghiên cứu.
-Tài liệu đầy đủ tham khảo tại: https://www.fatf-gafi.org/recommendations.html
+However, FATF updated Recommendation 16 in June 2025. Therefore, the exact
+current technical requirements and implementation details must be checked
+against the current FATF Recommendation 16 / Interpretive Note and applicable
+national implementation.
+
+DO NOT:
+- treat the FATF Travel Rule as Vietnamese law;
+- claim that every blockchain transaction is automatically subject to a
+  Travel Rule obligation;
+- convert the FATF threshold into a Vietnamese legal reporting threshold.
+
+DIGITALASSET GUARD APPLICATION
+------------------------------
+Potential compliance checks:
+- identify originator/beneficiary information where available;
+- detect missing or inconsistent transfer information;
+- distinguish VASP-to-VASP / obliged-entity transfers from ordinary
+  self-hosted wallet activity;
+- retain the distinction between FATF compliance context and Vietnamese law.
+
+============================================================
+5. RECOMMENDATION 20 — REPORTING OF SUSPICIOUS TRANSACTIONS
+============================================================
+
+CORE PRINCIPLE
+--------------
+Financial institutions and relevant obliged entities should report promptly
+to the financial intelligence unit when they suspect, or have reasonable
+grounds to suspect, that funds are the proceeds of a criminal activity or are
+related to terrorist financing.
+
+KEY POINT
+---------
+Suspicious transaction reporting is not based only on a fixed transaction
+value.
+
+The relevant question is whether the facts give rise to suspicion or
+reasonable grounds for suspicion under the applicable framework.
+
+DIGITALASSET GUARD APPLICATION
+------------------------------
+The system can:
+- identify suspicious patterns;
+- aggregate evidence;
+- explain risk factors;
+- retrieve relevant legal/compliance sources;
+- generate a draft STR;
+- send the case for human review.
+
+The final reporting decision must remain subject to the applicable legal and
+institutional process.
+
+============================================================
+6. FATF VIRTUAL ASSET RED FLAG INDICATORS (2020)
+============================================================
+
+PURPOSE
+-------
+FATF's 2020 Virtual Assets Red Flag Indicators report helps reporting entities,
+FIUs, law enforcement and regulators identify potential ML/TF activity
+involving virtual assets.
+
+These indicators are NOT automatic proof of criminal activity.
+A red flag should be assessed together with the customer's profile,
+transaction context, legitimate economic rationale and other available
+evidence.
+
+SELECTED TRANSACTION-LEVEL INDICATORS
+-------------------------------------
+Examples include:
+- transaction activity that is inconsistent with the customer's profile or
+  expected activity;
+- unusual transaction patterns or structuring;
+- rapid movement of virtual assets through multiple addresses or services;
+- use of mechanisms or services that can obscure transaction origin,
+  destination or ownership;
+- transactions involving jurisdictions or counterparties associated with
+  elevated risk;
+- activity involving multiple virtual assets or services without an apparent
+  legitimate economic rationale;
+- unusual patterns involving privacy-enhancing technologies or mixing
+  services, where relevant to the facts;
+- rapid movement of funds through multiple wallets or services.
+
+GRAPH-RELEVANT INDICATORS
+-------------------------
+FATF's red-flag materials can provide contextual support for investigating:
+- multi-hop movement of value;
+- rapid movement across multiple wallets/services;
+- transaction patterns designed to obscure source or destination;
+- unusual clustering or movement of assets.
+
+IMPORTANT:
+Terms such as "fan-out", "fan-in", "chain-hopping", "circular flow" or
+"mixer" may be useful as SYSTEM_DERIVED analytical labels, but they should not
+be presented as if FATF had defined each label as a mandatory STR rule.
+
+The 2020 FATF report contains examples and indicators; it does not create a
+mechanical scoring formula.
+
+============================================================
+7. CUSTOMER / BEHAVIOURAL RED FLAGS
+============================================================
+
+Potential indicators include:
+- reluctance or inability to provide satisfactory identification or
+  information about the purpose of transactions;
+- activity inconsistent with the customer's known profile or business;
+- use of multiple accounts/wallets or jurisdictions without an apparent
+  legitimate rationale;
+- transactions that appear designed to avoid controls;
+- unusual urgency or unexplained rapid conversion/movement of virtual assets;
+- explanations that are inconsistent with transaction activity.
+
+IMPORTANT:
+These are investigative indicators, not automatic findings of money
+laundering.
+
+============================================================
+8. STABLECOINS, UNHOSTED WALLETS AND P2P
+============================================================
+
+CURRENT FATF CONTEXT
+--------------------
+FATF's 2025 targeted update identifies continuing illicit-finance risks
+associated with virtual assets, including significant use of stablecoins by
+illicit actors.
+
+FATF's March 2026 targeted report specifically examines stablecoins and
+peer-to-peer transactions involving unhosted wallets.
+
+The report highlights the value of:
+- stronger risk assessment;
+- public-private cooperation;
+- blockchain analytics and other investigative tools;
+- measures addressing illicit activity involving stablecoins and unhosted
+  wallets.
+
+DIGITALASSET GUARD APPLICATION
+------------------------------
+This supports the project's use of:
+- blockchain graph analytics;
+- wallet exposure analysis;
+- risk scoring;
+- suspicious-pattern detection;
+- evidence generation for investigators.
+
+Do not infer that every stablecoin or unhosted-wallet transaction is
+suspicious.
+
+============================================================
+9. FATF GUIDANCE FOR RISK-BASED APPROACH TO VA/VASP
+============================================================
+
+The 2021 FATF guidance provides implementation context for:
+- understanding VA/VASP risks;
+- licensing/registration and supervision;
+- CDD;
+- ongoing monitoring;
+- suspicious transaction reporting;
+- Travel Rule implementation;
+- P2P and unhosted-wallet risk;
+- information sharing and cooperation.
+
+The guidance is intended to help countries and VASPs implement the FATF
+requirements in the virtual-asset sector.
+
+============================================================
+10. 2025 TARGETED UPDATE — VA/VASPs
+============================================================
+
+FATF's June 2025 targeted update reports that jurisdictions have made progress
+but continue to face implementation challenges relating to Recommendation 15.
+
+The report highlights, among other issues:
+- continuing illicit-finance risks involving stablecoins;
+- fraud and scams;
+- challenges in risk assessment and mitigation;
+- the need for stronger implementation of AML/CFT controls;
+- the importance of international cooperation;
+- asset recovery and disruption of illicit networks.
+
+Use this document as current contextual evidence, not as a substitute for
+the text of the FATF Recommendations.
+
+============================================================
+11. SOURCE PRIORITY FOR DIGITALASSET GUARD
+============================================================
+
+SOURCE TYPE A — FATF PRIMARY STANDARD
+-------------------------------------
+FATF Recommendations, as amended October 2025.
+
+Use for:
+- R1 risk-based approach;
+- R10 CDD;
+- R15 VA/VASP AML/CFT framework;
+- R16 payment transparency / Travel Rule;
+- R20 suspicious transaction reporting;
+- relevant Interpretive Notes and Glossary definitions.
+
+SOURCE TYPE B — FATF VA/VASP GUIDANCE
+-------------------------------------
+Updated Guidance for a Risk-Based Approach to Virtual Assets and Virtual
+Asset Service Providers, October 2021.
+
+Use for implementation context and VA/VASP-specific interpretation.
+
+SOURCE TYPE C — FATF RED-FLAG REPORT
+------------------------------------
+Virtual Assets Red Flag Indicators of Money Laundering and Terrorist
+Financing, September 2020.
+
+Use for investigative indicators and typology context.
+
+SOURCE TYPE D — FATF CURRENT VA/VASP UPDATES
+--------------------------------------------
+2025 Targeted Update on Implementation of the FATF Standards on VAs and VASPs.
+
+Use for current implementation and emerging-risk context.
+
+SOURCE TYPE E — FATF 2026 STABLECOIN / UNHOSTED WALLET REPORT
+--------------------------------------------------------------
+Targeted Report on Stablecoins and Unhosted Wallets — Peer-to-Peer Transactions,
+March 2026.
+
+Use for current stablecoin, P2P and unhosted-wallet risk context.
+
+============================================================
+12. LEGAL RAG BOUNDARY RULES
+============================================================
+
+RULE 1:
+FATF is an international standard-setting body. Do not describe FATF
+Recommendations as Vietnamese legislation.
+
+RULE 2:
+When a question asks "theo pháp luật Việt Nam", prioritize Vietnamese legal
+sources. FATF may be provided as international context, but it cannot replace
+Vietnamese law.
+
+RULE 3:
+When a question asks "theo FATF", cite the relevant Recommendation,
+Interpretive Note, Guidance or FATF report.
+
+RULE 4:
+Do not convert a FATF red flag into an automatic conclusion that a transaction
+is money laundering.
+
+RULE 5:
+Do not convert a FATF red flag into an automatic STR requirement under
+Vietnamese law.
+
+RULE 6:
+Graph features such as:
+- fan-out;
+- fan-in;
+- hop distance;
+- PageRank;
+- centrality;
+- circular-flow detection;
+- exposure score;
+- mixer exposure;
+are SYSTEM_DERIVED features unless a source explicitly states otherwise.
+
+RULE 7:
+A DigitalAsset Guard risk score is SYSTEM_DERIVED and is not a FATF score.
+
+RULE 8:
+A Vietnamese reporting threshold must come from Vietnamese law/regulation,
+not from a FATF threshold.
+
+RULE 9:
+The FATF Travel Rule is distinct from Vietnamese rules on electronic
+transfers. Do not merge the two.
+
+RULE 10:
+Red flags are investigative signals. Final STR decisions require contextual
+assessment and applicable legal/institutional procedures.
+
+============================================================
+13. DIGITALASSET GUARD RAG OUTPUT FORMAT
+============================================================
+
+Recommended response structure:
+
+SOURCE:
+FATF Recommendation / Guidance / Report
+
+RULE:
+The relevant FATF requirement or contextual guidance.
+
+APPLICATION:
+How the rule/context relates to the transaction or case.
+
+LIMITATION:
+Whether the statement is:
+- FATF international standard;
+- FATF guidance;
+- FATF red-flag indicator;
+- Vietnamese legal requirement;
+- SYSTEM_DERIVED analytical conclusion.
+
+LEGAL_STATUS:
+One of:
+- INTERNATIONAL_STANDARD
+- FATF_GUIDANCE
+- FATF_RED_FLAG
+- VIETNAMESE_LAW
+- SYSTEM_DERIVED
+
+CONFIDENCE:
+High / Medium / Low based on source quality and evidence.
+
+============================================================
+14. OFFICIAL SOURCES
+============================================================
+
+FATF Recommendations:
+https://www.fatf-gafi.org/en/publications/Fatfrecommendations/Fatf-recommendations.html
+
+FATF Virtual Assets:
+https://www.fatf-gafi.org/en/topics/virtual-assets.html
+
+Updated Guidance for a Risk-Based Approach to Virtual Assets and VASPs (2021):
+https://www.fatf-gafi.org/en/publications/Fatfrecommendations/Guidance-rba-virtual-assets-2021.html
+
+Virtual Assets Red Flag Indicators (2020):
+https://www.fatf-gafi.org/en/publications/Methodsandtrends/Virtual-assets-red-flag-indicators.html
+
+2025 Targeted Update on VA/VASPs:
+https://www.fatf-gafi.org/en/publications/Fatfrecommendations/targeted-update-virtual-assets-vasps-2025.html
+
+2026 Targeted Report on Stablecoins and Unhosted Wallets / P2P:
+https://www.fatf-gafi.org/en/publications/Virtualassets/targeted-report-stablecoins-unhosted-wallets.html
+
+============================================================
+END OF DOCUMENT
+============================================================

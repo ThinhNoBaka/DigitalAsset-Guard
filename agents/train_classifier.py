@@ -1,18 +1,27 @@
 """
 agents/train_classifier.py
-Huấn luyện XGBoost trên tập Elliptic.
+Huấn luyện XGBoost trên dataset Ethereum Fraud Detection (đã clean).
 
-[SỬA] Train/test được load từ 2 FILE RIÊNG đã tách sẵn theo time_step
-(elliptic_clean.csv = time_step 1-34, elliptic_test.csv = time_step 35-49),
-không tự chia trong code nữa -- tránh trường hợp file input chỉ chứa 1 phần
-dải time_step (vd chỉ có 1-34) khiến việc filter `time_step > 34` ra tập
-test rỗng (0 dòng) và làm crash average_precision_score() ở bước evaluate.
+[THAY ĐỔI 2026-08-08] Chuyển từ Elliptic sang Ethereum Fraud Detection
+theo dataset MỚI (data/raw/ethereum_fraud/Complete.csv -> đã clean bởi
+scripts/01_prepare_ethereum_fraud_dataset.py thành
+data/processed/ethereum_fraud_training_clean.csv):
+
+- Dataset clean chỉ có 1 file (không tách sẵn train/test theo time_step như
+  Elliptic) -> script TỰ tách train/test bằng StratifiedSplit (test_size=0.2,
+  random_state=42) để giữ nguyên phân bố nhãn, KHÔNG rò rỉ (tách SAU khi đã
+  drop cột Address).
+- Test split được lưu ra data/processed/ethereum_fraud_test.csv để
+  tests/evaluate_model.py và agents/calibrate_classifier_threshold.py dùng
+  chung đúng 1 tập test (tránh mỗi nơi tự split khác nhau).
+- Cột danh tính Address bị loại khỏi feature; nhãn là FLAG (1 = illicit/fraud,
+  0 = licit).
 
 [V2-1 -- THAY_DOI_V2.md] Xử lý mất cân bằng nhãn: thử nghiệm CẢ 3 cấu hình
   (1) chỉ scale_pos_weight (baseline V1)
   (2) chỉ SMOTE (imblearn.over_sampling.SMOTE, CHỈ áp dụng trên tập train,
-      sau khi đã tách temporal split -- tuyệt đối không SMOTE trước khi tách
-      train/test vì sẽ rò rỉ dữ liệu tổng hợp từ tương lai vào quá khứ)
+      sau khi đã tách train/test -- tuyệt đối không SMOTE trước khi tách
+      vì sẽ rò rỉ dữ liệu tổng hợp từ tương lai vào quá khứ)
   (3) cả hai cùng lúc
 và GHI SỐ Recall/F1/AUC-PR THẬT của từng cấu hình (không dùng số minh hoạ) ra
 `tests/model_comparison_v2.json` + in ra console, để tests/evaluate_model.py
@@ -30,6 +39,7 @@ from pathlib import Path
 import pandas as pd
 import xgboost as xgb
 import joblib
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import recall_score, f1_score, average_precision_score, confusion_matrix, precision_score, classification_report
 
 try:
@@ -38,72 +48,56 @@ try:
 except ImportError:
     SMOTE_AVAILABLE = False
 
-ELLIPTIC_TRAIN = Path("data/raw/elliptic/elliptic_clean.csv")   # time_step 1-34
-ELLIPTIC_TEST = Path("data/raw/elliptic/elliptic_test.csv")     # time_step 35-49
+ETHEREUM_FRAUD_CLEAN = Path("data/processed/ethereum_fraud_training_clean.csv")  # dataset sạch Ethereum Fraud (1 file)
+ETHEREUM_FRAUD_TEST = Path("data/processed/ethereum_fraud_test.csv")             # test split tự tách khi train
 MODEL_OUT = Path("models/xgboost_aml.pkl")
 COMPARISON_OUT = Path("tests/model_comparison_v2.json")
 
 
-def _load_and_clean(filepath: Path, binary: bool = False) -> pd.DataFrame:
+def _load_clean_dataset(filepath: Path) -> pd.DataFrame:
     """
-    Train:
-        unknown / 1 / 2
-        1 = illicit
-        2 = licit
+    Load dataset Ethereum Fraud đã clean (scripts/01_prepare_ethereum_fraud_dataset.py).
 
-    Test:
-        0 / 1
-        1 = illicit
-        0 = licit
+    Schema: cột 'Address' (danh tính ví, KHÔNG phải feature), cột 'FLAG'
+    (1 = illicit/fraud, 0 = licit), 37 cột feature numeric.
     """
-
     df = pd.read_csv(filepath)
 
-    df["class"] = df["class"].astype(str).str.strip()
+    if "Address" not in df.columns:
+        raise ValueError(f"Thiếu cột bắt buộc 'Address' trong {filepath}.")
+    if "FLAG" not in df.columns:
+        raise ValueError(f"Thiếu cột bắt buộc 'FLAG' trong {filepath}.")
 
-    if binary:
-        # File test đã là 0/1
-        df["class"] = pd.to_numeric(df["class"], errors="coerce")
+    df["FLAG"] = df["FLAG"].astype(int)
 
-        before = len(df)
-
-        df = df[df["class"].isin([0, 1])].copy()
-
-        dropped = before - len(df)
-
-        if dropped:
-            print(
-                f"[CẢNH BÁO] {filepath}: loại {dropped} dòng không thuộc nhãn 0/1"
-            )
-
-        df["class"] = df["class"].astype(int)
-
-    else:
-        # File train gốc Elliptic: unknown / 1 / 2
-        before = len(df)
-
-        df = df[df["class"] != "unknown"].copy()
-
-        df["class"] = (
-            pd.to_numeric(df["class"], errors="coerce")
-            .map({
-                1: 1,  # illicit
-                2: 0   # licit
-            })
-        )
-
-        df = df.dropna(subset=["class"])
-
-        dropped = before - len(df)
-
-        if dropped:
-            print(
-                f"[INFO] {filepath}: loại {dropped} dòng unknown hoặc nhãn không hợp lệ"
-            )
-
-        df["class"] = df["class"].astype(int)
+    before = len(df)
+    df = df[df["FLAG"].isin([0, 1])].copy()
+    dropped = before - len(df)
+    if dropped:
+        print(f"[CẢNH BÁO] {filepath}: loại {dropped} dòng có FLAG khác 0/1")
 
     return df
+
+
+def _split_train_test(df: pd.DataFrame, *, test_size: float = 0.2,
+                      random_state: int = 42) -> tuple:
+    """
+    Tách train/test STRATIFIED trên dataset clean (1 file).
+
+    - Bỏ cột danh tính 'Address' trước khi tách (không bao giờ đưa ví vào feature).
+    - stratify=y giữ nguyên phân bố nhãn ở cả 2 tập.
+    - KHÔNG dùng SMOTE trước bước này (chống rò rỉ dữ liệu tổng hợp).
+    """
+    X = df.drop(columns=["Address", "FLAG"])
+    y = df["FLAG"]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y,
+        test_size=test_size,
+        random_state=random_state,
+        stratify=y,
+    )
+    return X_train, y_train, X_test, y_test
 
 
 def _make_classifier(scale_weight: float) -> xgb.XGBClassifier:
@@ -133,7 +127,7 @@ def _evaluate(clf, X_test: pd.DataFrame, y_test: pd.Series) -> dict:
     print("======================================")
 
     print("\n===== Classification Report =====")
-    print(classification_report(y_test,y_pred,target_names=["Licit","Illicit"],digits=4))
+    print(classification_report(y_test, y_pred, target_names=["Licit", "Illicit"], digits=4))
 
     print("\n===== Probability Summary =====")
     print(pd.Series(y_proba).describe())
@@ -186,52 +180,42 @@ def _run_config(name: str, X_train, y_train, X_test, y_test, *, use_smote: bool,
 
 
 def train_model():
-    if not ELLIPTIC_TRAIN.exists():
-        print(f"LỖI: Không tìm thấy {ELLIPTIC_TRAIN}. Vui lòng chạy scripts/03_load_elliptic.py trước.")
-        return
-    if not ELLIPTIC_TEST.exists():
-        print(f"LỖI: Không tìm thấy {ELLIPTIC_TEST}. Cần file test đã tách sẵn (time_step 35-49).")
-        return
-
-    print("Đang load dữ liệu Elliptic (train: 1-34, test: 35-49, 2 file riêng)...")
-    train_df = _load_and_clean(
-        ELLIPTIC_TRAIN,
-        binary=False
-    )
-
-    test_df = _load_and_clean(
-        ELLIPTIC_TEST,
-        binary=True
-    )
-    print("\n===== TRAIN LABELS =====")
-    print(train_df["class"].value_counts())
-
-    print("\n===== TEST LABELS =====")
-    print(test_df["class"].value_counts())
-    
-    # Cảnh báo sớm nếu 1 trong 2 file rỗng sau khi lọc 'unknown' -- tránh lặp
-    # lại lỗi cũ (test rỗng khiến average_precision_score crash ở bước sau).
-    if len(train_df) == 0:
-        print(f"LỖI: {ELLIPTIC_TRAIN} rỗng sau khi lọc nhãn 'unknown'. Dừng lại.")
-        return
-    if len(test_df) == 0:
-        print(f"LỖI: {ELLIPTIC_TEST} rỗng sau khi lọc nhãn 'unknown'. Dừng lại.")
+    if not ETHEREUM_FRAUD_CLEAN.exists():
+        print(
+            f"LỖI: Không tìm thấy {ETHEREUM_FRAUD_CLEAN}. "
+            "Vui lòng chạy scripts/01_prepare_ethereum_fraud_dataset.py trước."
+        )
         return
 
-    # SMOTE (V2-1) chỉ được áp dụng SAU bước load 2 file riêng này, chỉ trên
-    # train_df, không bao giờ trên test_df -- 2 file đã tách theo time_step
-    # từ trước (temporal split), không random split.
+    print(f"Đang load dataset Ethereum Fraud đã clean: {ETHEREUM_FRAUD_CLEAN} ...")
+    df = _load_clean_dataset(ETHEREUM_FRAUD_CLEAN)
 
-    # Tách X, y (loại bỏ các cột định danh và nhãn)
-    drop_cols = ['txId', 'time_step', 'class']
-    X_train = train_df.drop(columns=drop_cols)
-    y_train = train_df['class']
-    X_test = test_df.drop(columns=drop_cols)
-    y_test = test_df['class']
+    print("\n===== CLASS DISTRIBUTION (toàn bộ dataset clean) =====")
+    print(df["FLAG"].value_counts())
 
-    print(f"Kích thước tập Train: {len(X_train)} (Illicit: {(y_train == 1).sum()}, "
-          f"Licit: {(y_train == 0).sum()})")
-    print(f"Kích thước tập Test: {len(X_test)}")
+    # --- Tách train/test STRATIFIED (thay cho 2 file Elliptic tách sẵn) ---
+    X_train, y_train, X_test, y_test = _split_train_test(df)
+
+    print(f"\n===== TRAIN LABELS =====")
+    print(y_train.value_counts())
+    print(f"\n===== TEST LABELS =====")
+    print(y_test.value_counts())
+
+    # Cảnh báo sớm nếu 1 trong 2 tập rỗng -- tránh crash average_precision_score.
+    if len(X_train) == 0:
+        print("LỖI: Tập train rỗng sau khi tách. Dừng lại.")
+        return
+    if len(X_test) == 0:
+        print("LỖI: Tập test rỗng sau khi tách. Dừng lại.")
+        return
+
+    # Lưu test split ra file dùng chung cho tests/evaluate_model.py +
+    # agents/calibrate_classifier_threshold.py (KHÔNG ghi đè file raw).
+    test_df = X_test.copy()
+    test_df["FLAG"] = y_test
+    ETHEREUM_FRAUD_TEST.parent.mkdir(parents=True, exist_ok=True)
+    test_df.to_csv(ETHEREUM_FRAUD_TEST, index=False, encoding="utf-8")
+    print(f"\nĐã lưu test split ({len(test_df)} dòng) tại {ETHEREUM_FRAUD_TEST}")
 
     # --- [V2-1] Thử nghiệm cả 3 cấu hình, ghi lại số đo THẬT của từng cái ---
     print("\n=== Đang huấn luyện & so sánh 3 cấu hình xử lý mất cân bằng nhãn (V2-1) ===")
@@ -280,13 +264,6 @@ def train_model():
     MODEL_OUT.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(best_clf, MODEL_OUT)
     print(f"Hoàn tất! Đã lưu model ({best_name}) tại {MODEL_OUT}")
-
-    # KHÔNG ghi lại test_df ra đĩa nữa -- ELLIPTIC_TEST (elliptic_test.csv)
-    # đã là file test có sẵn do bạn tự tách trước (time_step 35-49), ghi đè
-    # lên nó ở đây là thừa và rủi ro (nếu code sau này đổi logic lọc, có thể
-    # vô tình làm sai lệch chính file gốc bạn đang dùng làm chuẩn).
-    # tests/evaluate_model.py nên đọc trực tiếp ELLIPTIC_TEST thay vì file
-    # trung gian riêng.
 
     # Ghi số liệu so sánh THẬT ra file JSON cho tests/evaluate_model.py / báo cáo
     COMPARISON_OUT.parent.mkdir(parents=True, exist_ok=True)

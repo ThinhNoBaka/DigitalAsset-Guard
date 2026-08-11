@@ -1,36 +1,39 @@
 """
-scripts/02_fetch_etherscan_sample.py -- Lấy dữ liệu ví mẫu từ Etherscan.
+scripts/02_fetch_etherscan_sample.py -- Lấy dữ liệu ví mẫu từ nhiều chain qua
+Etherscan API V2, lưu ra data/raw/etherscan/sample_txs.json.
+
+Refactor 2026-08-08: toàn bộ logic fetch dời sang scripts/etherscan_fetcher.py
+(module dùng chung với api/main.py production path — bắt buộc có wallet_record
+đúng schema, xem agents/transaction_classifier.py FIX 2026-08-08).
 """
-import os
-import requests
 import json
+import os
+
 from dotenv import load_dotenv
+
+from scripts.etherscan_fetcher import fetch_wallet_record
 
 load_dotenv()
 
-def fetch_etherscan_data():
-    api_key = os.getenv("ETHERSCAN_API_KEY")
-    if not api_key:
-        print("[LỖI] Chưa cấu hình ETHERSCAN_API_KEY trong file .env")
-        return
-        
-    # Lấy thử giao dịch của một ví công khai (ví dụ ví sàn Binance)
-    address = "0x28C6c06298d514Db089934071355E5743bf21d60" 
-    url = f"https://api.etherscan.io/api?module=account&action=txlist&address={address}&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey={api_key}"
-    
-    try:
-        response = requests.get(url)
-        data = response.json()
-        
-        output_file = "data/raw/etherscan/sample_txs.json"
-        os.makedirs(os.path.dirname(output_file), exist_ok=True)
-        
-        with open(output_file, "w") as f:
-            json.dump(data, f, indent=4)
-            
-        print(f"[✓] Đã lưu dữ liệu Etherscan tại: {output_file} ({len(data.get('result', []))} bản ghi)")
-    except Exception as e:
-        print(f"[LỖI] Không thể kết nối Etherscan: {e}")
+
+def fetch_etherscan_data(address, max_records=1000, page_size=100):
+    """Giữ tên hàm tương thích với phiên bản cũ (có thể có caller khác import)."""
+    wallet_record = fetch_wallet_record(address, max_records=max_records, page_size=page_size)
+
+    os.makedirs(os.path.dirname("data/raw/etherscan/sample_txs.json"), exist_ok=True)
+    output_file = "data/raw/etherscan/sample_txs.json"
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(wallet_record, f, indent=4)
+
+    total_txs = sum(len(v) for v in wallet_record["chains"].values())
+    total_token_txs = sum(len(v) for v in wallet_record["token_transfers"].values())
+    print(
+        f"[✓] Đã lưu toàn bộ dữ liệu ({total_txs} tx thường + {total_token_txs} tx ERC20, "
+        f"{len(wallet_record['chains'])} chain) tại: {output_file}"
+    )
+
 
 if __name__ == "__main__":
-    fetch_etherscan_data()
+    address = "0x28C6c06298d514Db089934071355E5743bf21d60"
+    fetch_etherscan_data(address, max_records=1000, page_size=100)

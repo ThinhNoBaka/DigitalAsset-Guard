@@ -1,0 +1,224 @@
+{
+  "Avg_min_between_sent_tnx": {
+    "order": 0,
+    "data_type": "float64",
+    "source_column": "Avg_min_between_sent_tnx",
+    "production_feature_name": "Avg min between sent tnx"
+  },
+  "Avg_min_between_received_tnx": {
+    "order": 1,
+    "data_type": "float64",
+    "source_column": "Avg_min_between_received_tnx",
+    "production_feature_name": "Avg min between received tnx"
+  },
+  "Time_Diff_between_first_and_last_(Mins)": {
+    "order": 2,
+    "data_type": "float64",
+    "source_column": "Time_Diff_between_first_and_last_(Mins)",
+    "production_feature_name": "Time Diff between first and last (Mins)"
+  },
+  "Sent_tnx": {
+    "order": 3,
+    "data_type": "int64",
+    "source_column": "Sent_tnx",
+    "production_feature_name": "Sent tnx"
+  },
+  "Received_Tnx": {
+    "order": 4,
+    "data_type": "int64",
+    "source_column": "Received_Tnx",
+    "production_feature_name": "Received Tnx"
+  },
+  "Number_of_Created_Contracts": {
+    "order": 5,
+    "data_type": "int64",
+    "source_column": "Number_of_Created_Contracts",
+    "production_feature_name": "Number of Created Contracts"
+  },
+  "Unique_Received_From_Addresses": {
+    "order": 6,
+    "data_type": "int64",
+    "source_column": "Unique_Received_From_Addresses",
+    "production_feature_name": "Unique Received From Addresses"
+  },
+  "Unique_Sent_To_Addresses": {
+    "order": 7,
+    "data_type": "int64",
+    "source_column": "Unique_Sent_To_Addresses",
+    "production_feature_name": "Unique Sent To Addresses"
+  },
+  "min_value_received": {
+    "order": 8,
+    "data_type": "float64",
+    "source_column": "min_value_received",
+    "production_feature_name": "min value received"
+  },
+  "max_value_received": {
+    "order": 9,
+    "data_type": "float64",
+    "source_column": "max_value_received",
+    "production_feature_name": "max value received"
+  },
+  "avg_val_received": {
+    "order": 10,
+    "data_type": "float64",
+    "source_column": "avg_val_received",
+    "production_feature_name": "avg val received"
+  },
+  "min_val_sent": {
+    "order": 11,
+    "data_type": "float64",
+    "source_column": "min_val_sent",
+    "production_feature_name": "min val sent"
+  },
+  "max_val_sent": {
+    "order": 12,
+    "data_type": "float64",
+    "source_column": "max_val_sent",
+    "production_feature_name": "max val sent"
+  },
+  "avg_val_sent": {
+    "order": 13,
+    "data_type": "float64",
+    "source_column": "avg_val_sent",
+    "production_feature_name": "avg val sent"
+  },
+  "min_value_sent_to_contract": {
+    "order": 14,
+    "data_type": "int64",
+    "source_column": "min_value_sent_to_contract",
+    "production_feature_name": "min value sent to contract"
+  },
+  "max_val_sent_to_contract": {
+    "order": 15,
+    "data_type": "int64",
+    "source_column": "max_val_sent_to_contract",
+    "production_feature_name": "max val sent to contract"
+  },
+  "avg_value_sent_to_contract": {
+    "order": 16,
+    "data_type": "int64",
+    "source_column": "avg_value_sent_to_contract",
+    "production_feature_name": "avg value sent to contract"
+  },
+  "total_transactions_(including_tnx_to_create_contract)": {
+    "order": 17,
+    "data_type": "int64",
+    "source_column": "total_transactions_(including_tnx_to_create_contract)",
+    "production_feature_name": "total transactions (including tnx to create contract)"
+  },
+  "total_Ether_sent": {
+    "order": 18,
+    "data_type": "float64",
+    "source_column": "total_Ether_sent",
+    "production_feature_name": "total Ether sent"
+  },
+  "total_ether_received": {
+    "order": 19,
+    "data_type": "float64",
+    "source_column": "total_ether_received",
+    "production_feature_name": "total ether received"
+  },
+  "total_ether_sent_contracts": {
+    "order": 20,
+    "data_type": "int64",
+    "source_column": "total_ether_sent_contracts",
+    "production_feature_name": "total ether sent contracts"
+  },
+  "total_ether_balance": {
+    "order": 21,
+    "data_type": "float64",
+    "source_column": "total_ether_balance",
+    "production_feature_name": "total ether balance (APPROX, no internal tx)"
+  },
+  "Total_ERC20_tnxs": {
+    "order": 22,
+    "data_type": "float64",
+    "source_column": "Total_ERC20_tnxs",
+    "production_feature_name": "Total ERC20 tnxs"
+  },
+  "ERC20_total_Ether_received": {
+    "order": 23,
+    "data_type": "float64",
+    "source_column": "ERC20_total_Ether_received",
+    "production_feature_name": "ERC20 total Ether received"
+  },
+  "ERC20_total_ether_sent": {
+    "order": 24,
+    "data_type": "float64",
+    "source_column": "ERC20_total_ether_sent",
+    "production_feature_name": "ERC20 total ether sent"
+  },
+  "ERC20_uniq_sent_addr": {
+    "order": 25,
+    "data_type": "float64",
+    "source_column": "ERC20_uniq_sent_addr",
+    "production_feature_name": "ERC20 uniq sent addr"
+  },
+  "ERC20_uniq_rec_addr": {
+    "order": 26,
+    "data_type": "float64",
+    "source_column": "ERC20_uniq_rec_addr",
+    "production_feature_name": "ERC20 uniq rec addr"
+  },
+  "ERC20_avg_time_between_sent_tnx": {
+    "order": 27,
+    "data_type": "float64",
+    "source_column": "ERC20_avg_time_between_sent_tnx",
+    "production_feature_name": "ERC20 avg time between sent tnx"
+  },
+  "ERC20_avg_time_between_rec_tnx": {
+    "order": 28,
+    "data_type": "float64",
+    "source_column": "ERC20_avg_time_between_rec_tnx",
+    "production_feature_name": "ERC20 avg time between rec tnx"
+  },
+  "ERC20_min_val_rec": {
+    "order": 29,
+    "data_type": "float64",
+    "source_column": "ERC20_min_val_rec",
+    "production_feature_name": "ERC20 min val rec"
+  },
+  "ERC20_max_val_rec": {
+    "order": 30,
+    "data_type": "float64",
+    "source_column": "ERC20_max_val_rec",
+    "production_feature_name": "ERC20 max val rec"
+  },
+  "ERC20_avg_val_rec": {
+    "order": 31,
+    "data_type": "float64",
+    "source_column": "ERC20_avg_val_rec",
+    "production_feature_name": "ERC20 avg val rec"
+  },
+  "ERC20_min_val_sent": {
+    "order": 32,
+    "data_type": "float64",
+    "source_column": "ERC20_min_val_sent",
+    "production_feature_name": "ERC20 min val sent"
+  },
+  "ERC20_max_val_sent": {
+    "order": 33,
+    "data_type": "float64",
+    "source_column": "ERC20_max_val_sent",
+    "production_feature_name": "ERC20 max val sent"
+  },
+  "ERC20_avg_val_sent": {
+    "order": 34,
+    "data_type": "float64",
+    "source_column": "ERC20_avg_val_sent",
+    "production_feature_name": "ERC20 avg val sent"
+  },
+  "ERC20_uniq_sent_token_name": {
+    "order": 35,
+    "data_type": "float64",
+    "source_column": "ERC20_uniq_sent_token_name",
+    "production_feature_name": "ERC20 uniq sent token name"
+  },
+  "ERC20_uniq_rec_token_name": {
+    "order": 36,
+    "data_type": "float64",
+    "source_column": "ERC20_uniq_rec_token_name",
+    "production_feature_name": "ERC20 uniq rec token name"
+  }
+}

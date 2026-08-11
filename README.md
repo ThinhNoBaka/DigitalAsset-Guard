@@ -1,328 +1,306 @@
-# Hướng Dẫn Xây Dựng Lại DigitalAsset Guard AI Copilot — Từ Đầu
+# 🛡️ DigitalAsset Guard — AML AI Copilot
 
-> Đi kèm với `SPEC.md` (bản đặc tả duy nhất). Mỗi phần dưới đây = 1 buổi làm việc, làm xong phần nào kiểm tra xong phần đó rồi mới sang phần tiếp theo. Đừng nhảy cóc.
+> Hỗ trợ chuyên viên AML ngân hàng / VASP / tổ chức tín dụng phát hiện và điều tra **giao dịch tài sản số (blockchain) đáng ngờ** liên quan đến rửa tiền — từ sàng lọc ban đầu đến **dự thảo báo cáo giao dịch đáng ngờ (STR)** theo khung pháp lý Việt Nam, với **human-in-the-loop**.
+
+![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
+![LangGraph](https://img.shields.io/badge/Orchestration-LangGraph-1C3C3C)
+![XGBoost](https://img.shields.io/badge/ML-XGBoost-orange?logo=xgboost&logoColor=white)
+![Neo4j](https://img.shields.io/badge/Graph-Neo4j%20%2B%20GDS-4581C3?logo=neo4j&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Prototype%2FMVP-green)
 
 ---
 
-## Phần 0 — Chuẩn bị môi trường
+## 📸 Giao diện web
 
-**Mục tiêu:** có một khởi điểm sạch, không lẫn code cũ vào code mới.
+> 📌 **Chèn ảnh giao diện web vào đây.** Thay `pictures/ten_file_anh.png` bằng đường dẫn tới ảnh của bạn (có thể đặt ảnh trong thư mục `pictures/` hoặc dùng link CDN/Imgur).
 
-**Việc cần làm:**
-1. Đổi tên thư mục repo hiện tại: `digitalasset_guard` → `digitalasset_guard_v1_archive`. Không sửa gì trong đó nữa, chỉ để tham khảo/copy khi cần.
-2. Tạo thư mục mới `digitalasset_guard/`, `cd` vào đó, `git init`.
-3. Copy `SPEC.md` vào gốc thư mục mới. Đây là file bạn sẽ mở ra đọc trước khi làm bất kỳ phần nào bên dưới.
-4. Tạo virtual environment: `python -m venv venv` → activate.
-5. Tạo `requirements.txt` khởi điểm (sẽ bổ sung dần theo từng phần):
+### 🏠 Dashboard / Kết quả pipeline
+
+<!-- 👇 CHÈN ẢNH GIAO DIỆN 1 (VÍ DỤ: TRANG CHÍNH / KẾT QUẢ PIPELINE) -->
+<p align="center">
+  <img src="pictures/Screenshot%202026-08-06%20113301.png" alt="Giao diện - Dashboard" width="800"/>
+</p>
+
+### 🔍 Chi tiết rủi ro & bằng chứng
+
+<!-- 👇 CHÈN ẢNH GIAO DIỆN 2 (VÍ DỤ: RISK BREAKDOWN / GRAPH PATH SVG) -->
+<p align="center">
+  <img src="pictures/Screenshot%202026-08-06%20113541.png" alt="Giao diện - Chi tiết rủi ro" width="800"/>
+</p>
+
+### 📄 Dự thảo báo cáo STR
+
+<!-- 👇 CHÈN ẢNH GIAO DIỆN 3 (VÍ DỤ: MÀN HÌNH APPROVE/REJECT & GIAO DIỆN STR) -->
+<p align="center">
+  <img src="pictures/Screenshot%202026-08-06%20113611.png" alt="Giao diện - Báo cáo STR" width="800"/>
+</p>
+
+> 💡 **Mẹo:** các ảnh mẫu hiện có trong thư mục [`pictures/`](pictures/). Bạn có thể thay `TenFile.png` bằng tên file thật, hoặc xóa block và dán link ảnh của riêng mình.
+
+---
+
+## ✨ Tính năng chính
+
+- 🔐 **Privacy by Design** — PII (tên, CCCD, số tài khoản) bị **băm SHA-256 + salt ngay tại request boundary**, có chốt kiểm tra tự động `assert_no_raw_pii`; fuzzy name-screening chạy **trước khi băm**.
+- 🤖 **5 Assistant độc lập**:
+  - **Aggregation Monitor** — phát hiện **structuring/smurfing** (chia nhỏ giao dịch né ngưỡng báo cáo).
+  - **Transaction Assistant** — chấm điểm rủi ro bằng **XGBoost** trên feature vector **thật (37 features)** từ Etherscan, kèm giải thích **SHAP per-transaction**.
+  - **Graph Assistant** — phân tích đồ thị dòng tiền: **Personalized PageRank**, **Louvain community**, hop distance tới ví bị trừng phạt, suspicious path, fan-out (NetworkX cho demo / Neo4j GDS cho production).
+  - **Sanctions Assistant** — sàng lọc chính xác địa chỉ ví với danh sách **OFAC SDN**.
+  - **Decision Engine** — tổng hợp thành quyết định **PASS / REVIEW / REPORT** bằng **rule-based composite** (5 rule độc lập, không dùng một con số rủi ro tổng hợp).
+- ⚖️ **Regulation RAG** — truy vấn ChromaDB + LLM để trích dẫn đúng điều khoản (Thông tư 27/2025/TT-NHNN, Luật PCRT 2022 + QĐ 11/2023/QĐ-TTg), **không bao giờ giả vờ ổn** khi LLM lỗi (`legal_rag_status=UNAVAILABLE`).
+- 📄 **STR Draft — Mẫu 04** — sinh báo cáo giao dịch đáng ngờ `.docx` tự động khi `decision=REPORT`, có disclaimer "dự thảo, phải chuyên viên phê duyệt".
+- 🧑‍💼 **Human-in-the-Loop** — pipeline dừng tại checkpoint chờ chuyên viên **Approve/Reject** trước khi STR được coi là hợp lệ.
+- 💬 **Chat giải thích** — LLM chỉ được dùng dữ liệu trong state, không tự tạo số liệu / căn cứ pháp lý.
+- 🖥️ **Frontend AML dashboard** — nhập giao dịch, xem pipeline rail, risk breakdown, sơ đồ dòng tiền SVG, citations, phê duyệt, tải STR.
+
+---
+
+## 🏗️ Kiến trúc hệ thống
+
 ```
-python-dotenv
-pydantic
+client (browser / POST API)
+   │  RawTransactionRequest: tx_hash, wallet_from, wallet_to, amount_vnd,
+   │                          fullname, id_number, account_number
+   ▼
+api/main.py (_build_initial_state)
+   • fetch_wallet_record() bằng Etherscan API  → state["wallet_record"]
+   • get_wallet_tx_history(account_number)      → state["wallet_tx_history"] (mock off-chain)
+   • get_graph_provider() (mock / neo4j)        → state["mock_graph_edges"] / blacklisted
+   ▼
+PipelineRun.run()  (LangGraph)
+   privacy_layer
+      └─ fuzzy name-screening (TRƯỚC băm) → name_similarity_*
+      └─ mask_pii → hashed_*  (loại raw PII khỏi state)
+      ▼
+   aggregation_monitor  → structuring_detected, aggregation_status
+      ▼
+   transaction_classifier → classifier_score, top_features (SHAP), insufficient_data
+      ▼
+   graph_aml → graph_score (PPR), community_id, hop_distance_to_blacklist,
+               suspicious_path, fan_out, graph_analysis_status
+      ▼
+   sanctions (verify_kyc) → sanction_result
+      ▼
+   decision_engine → decision (PASS / REVIEW / REPORT), decision_evidence
+      │
+      ├─ PASS    → END (auto_cleared)
+      ├─ REVIEW  → END (chuyên viên xem evidence, KHÔNG tự soạn STR)
+      └─ REPORT  → regulation_rag → alert_report → HUMAN CHECKPOINT
+                      (is_paused: case_status=pending_review && approval_status=pending)
+                      │
+                      ▼
+              chuyên viên Approve/Reject
+                      ▼
+              PipelineRun.resume() → cập nhật approval_status → END
 ```
-6. Tạo `.env` (rỗng, sẽ điền dần) và `.gitignore` (thêm `venv/`, `.env`, `*.pkl`, `data/raw/`, `__pycache__/`).
-7. Dựng khung thư mục rỗng đúng như mục 6 trong `SPEC.md` (dùng `mkdir -p` cho toàn bộ cây thư mục, thêm file `.gitkeep` vào các thư mục rỗng).
 
-**Lưu ý:**
-- Đừng copy bất kỳ file `.py` nào từ v1 vào lúc này. Bạn sẽ chỉ copy từng đoạn code cụ thể khi làm tới phần tương ứng, sau khi đã hiểu SPEC.md yêu cầu gì — tránh mang theo lỗi cũ mà không biết.
-- Không cài đặt Neo4j/ChromaDB ngay bây giờ. Để dành đến Phần 3 và Phần 6.
+### Pipeline điều tra 8 bước
 
-**Hoàn thành khi:** có cấu trúc thư mục rỗng đúng SPEC.md, venv chạy được, git đã init.
-
----
-
-## Phần 1 — Nền tảng: `core/config.py` + `core/state.py`
-
-**Mục tiêu:** dựng "khung xương" mà mọi module sau này đều phụ thuộc vào. Làm sai ở đây sẽ phải sửa lại toàn bộ agent sau này, nên làm cẩn thận nhất có thể ngay từ đầu.
-
-**Việc cần làm:**
-
-1. `core/config.py`:
-   - Đọc biến môi trường từ `.env` (dùng `python-dotenv`).
-   - Khai báo các hằng số: ngưỡng báo cáo (500 triệu VND / 1.000 USD), đường dẫn `data/`, `models/`, `reports/output/`.
-   - Khai báo cờ `DEMO_MODE = True/False` — khi `True`, hệ thống dùng NetworkX + dữ liệu mock thay vì Neo4j/API thật (để bạn chạy được ngay cả khi chưa cài Neo4j).
-
-2. `core/state.py`:
-   - Định nghĩa `AMLState` (dùng `TypedDict` hoặc Pydantic model) — đây là "hộp dữ liệu" đi xuyên suốt qua tất cả agent trong LangGraph.
-   - **Chỉ khai báo các trường sau (đúng SPEC.md mục 4), không thêm trường PII gốc nào:**
-     ```python
-     class AMLState(TypedDict):
-         tx_hash: str
-         wallet_from: str
-         wallet_to: str
-         amount_vnd: float
-         hashed_fullname: str | None
-         hashed_id_number: str | None
-         hashed_account_number: str | None
-         risk_score_classifier: float | None
-         kyc_flags: list | None
-         graph_risk_score: float | None
-         legal_citations: list | None
-         final_risk_score: float | None
-         report_path: str | None
-         approval_status: str | None  # "pending" | "approved" | "rejected"
-     ```
-   - Viết docstring ngay đầu file nhắc lại quy tắc: *"Không bao giờ thêm trường chứa PII gốc (fullname, id_number, account_number) vào state này. Chỉ dùng bản đã băm."*
-
-**Lưu ý quan trọng:**
-- Đây là lúc dễ bị cám dỗ "thêm tạm vài trường cho tiện" nhất — đừng làm. Mọi trường thêm vào `AMLState` sau này phải quay lại đối chiếu với SPEC.md trước.
-- Nếu dùng Pydantic thay TypedDict, dùng `model_config = {"extra": "forbid"}` để không lỡ tay thêm trường ngoài ý muốn ở agent sau này.
-
-**Cách kiểm tra:** viết 1 file test nhỏ `tests/test_state.py`, thử tạo 1 instance `AMLState` với dữ liệu mẫu, in ra, xác nhận không có lỗi type.
-
-**Hoàn thành khi:** `config.py` load được `.env`, `state.py` tạo được object mẫu không lỗi.
+| Bước | Thành phần | Kết quả |
+|---|---|---|
+| 1 | Webhook/API nhận giao dịch (kèm PII) | yêu cầu thô |
+| 2 | **Privacy Layer** — băm PII SHA-256 + salt, fuzzy name-screening trước khi băm | `hashed_*`, `name_similarity_*` |
+| 3 | **Aggregation Monitor** — phát hiện structuring/smurfing | `structuring_detected` |
+| 4 | **Transaction Assistant** — XGBoost + SHAP | `classifier_score`, `top_features` |
+| 5 | **Graph Assistant** — PPR, Louvain, hop distance | `graph_score`, `suspicious_path` |
+| 6 | **Sanctions Assistant** — OFAC SDN exact match | `sanction_result` |
+| 7 | **Decision Engine** — rule-based composite | `PASS / REVIEW / REPORT` |
+| 8 | **Legal RAG + Report + HITL** — soạn STR Mẫu 04, chờ duyệt | STR `.docx`, `approval_status` |
 
 ---
 
-## Phần 2 — Privacy Layer (SHA-256 Masking)
+## 🧰 Công nghệ sử dụng
 
-**Mục tiêu:** dựng ranh giới bảo mật bắt buộc phải có trước khi bất kỳ agent nào chạm vào dữ liệu khách hàng.
-
-**Việc cần làm:**
-
-1. Tạo `core/privacy_layer.py` với hàm chính:
-   ```python
-   def mask_pii(raw_customer: dict, salt: str) -> dict:
-       """
-       Input: {"fullname": ..., "id_number": ..., "account_number": ...}
-       Output: {"hashed_fullname": ..., "hashed_id_number": ..., "hashed_account_number": ...}
-       """
-   ```
-2. Dùng `hashlib.sha256((value + salt).encode()).hexdigest()` cho từng trường.
-3. Đọc `salt` từ `.env` (biến `PII_SALT`), sinh ngẫu nhiên 1 lần và lưu cố định — không hard-code trong source.
-4. Viết thêm 1 hàm `assert_no_raw_pii(state: dict)` — quét state, nếu phát hiện key nào nằm trong danh sách cấm (`fullname`, `id_number`, `account_number` — không có tiền tố `hashed_`) thì raise Exception ngay. Hàm này sẽ được gọi ở đầu mỗi agent từ Phần 4 trở đi, như một "chốt kiểm tra" tự động.
-
-**Lưu ý quan trọng:**
-- Salt **cố định trong `.env`** cho MVP (đã chốt ở SPEC.md mục 8) — không cần xoay vòng theo phiên, nhưng phải ghi rõ giới hạn này vào phần "Hạn chế" của báo cáo cuối cùng khi bảo vệ.
-- Không log giá trị PII gốc ra console/file log ở bất kỳ đâu trong hàm `mask_pii`, kể cả khi debug — xóa print/log ngay sau khi test xong.
-
-**Cách kiểm tra:** viết `tests/test_privacy_layer.py`:
-- Test 1: cùng input → cùng hash (deterministic).
-- Test 2: 2 input khác nhau → 2 hash khác nhau.
-- Test 3: gọi `assert_no_raw_pii` với 1 dict có key `fullname` → phải raise lỗi.
-- Test 4: gọi với dict chỉ có `hashed_fullname` → không lỗi.
-
-**Hoàn thành khi:** cả 4 test trên pass.
+| Công nghệ | Mục đích |
+|---|---|
+| Python 3.10+ | Ngôn ngữ chính |
+| FastAPI + Uvicorn | API Gateway + serve frontend |
+| LangGraph | Orchestration pipeline + HITL checkpoint |
+| XGBoost + SHAP | ML classifier + explainability per-transaction |
+| imbalanced-learn (SMOTE) | Xử lý mất cân bằng nhãn |
+| NetworkX | Graph algorithms demo (PPR, Louvain, shortest path) |
+| Neo4j 5.26 + GDS 2.13.2 | Graph database + GDS production path |
+| ChromaDB | Vector DB cho Legal RAG |
+| OpenAI SDK (compatible) | LLM cho RAG + chat (Groq / OpenRouter...) |
+| python-docx | Sinh STR `.docx` Mẫu 04 |
+| pytest | Kiểm thử |
+| Docker Compose | Neo4j + ChromaDB services |
+| HTML/CSS/JS (thuần) | Frontend AML dashboard |
 
 ---
 
-## Phần 3 — Chuẩn bị dữ liệu
+## 🚀 Bắt đầu nhanh
 
-**Mục tiêu:** có đủ dữ liệu thật để agent ở các phần sau xử lý, không cần đụng tới model/logic AI ở phần này.
+### 1. Yêu cầu
 
-**Việc cần làm:**
+- Python 3.10+
+- (Tùy chọn) Docker + Docker Compose cho Neo4j / ChromaDB
+- API key Etherscan (`.env`), API key LLM (`.env`)
 
-1. **Elliptic Dataset** (`data/raw/elliptic/`):
-   - Tải bộ `Elliptic Bitcoin Dataset` (features, classes, edgelist) — 3 file CSV chuẩn của bộ dữ liệu gốc.
-   - Viết `scripts/03_load_elliptic.py`: đọc 3 file CSV, merge lại thành 1 DataFrame có cột `time_step`, `class` (1=illicit, 2=licit, unknown=bỏ), và các cột đặc trưng.
+### 2. Cài đặt
 
-2. **OFAC SDN** (`data/raw/ofac/sdn.xml`):
-   - Tải file XML danh sách SDN từ trang OFAC (định dạng XML, **không phải .txt** — đã chốt ở SPEC.md).
-   - Viết `scripts/01_check_ofac.py`: dùng `xml.etree.ElementTree.iterparse` để đọc từng entry mà không load toàn bộ file vào RAM, trích ra danh sách tên + địa chỉ ví (nếu có) → lưu gọn thành `data/processed/sample_ofac_wallet.txt` để agent KYC dùng nhanh mà không phải parse lại XML mỗi lần chạy.
+```bash
+# Clone repo
+git clone https://github.com/ThinhNoBaka/DigitalAsset-Guard.git
+cd DigitalAsset-Guard
 
-3. **Etherscan** (`data/raw/etherscan/`):
-   - Đăng ký free API key Etherscan, lưu vào `.env` (`ETHERSCAN_API_KEY`).
-   - Viết `scripts/02_fetch_etherscan_sample.py`: gọi API lấy lịch sử giao dịch của 1 nhóm ví mẫu (có thể chọn vài ví công khai đã biết dính rủi ro để demo thuyết phục hơn), lưu ra JSON/CSV thô.
-   - *(Quyết định BscScan: theo khuyến nghị SPEC.md mục 8 — chỉ làm Ethereum trong MVP, bỏ qua BscScan, ghi chú vào README là hướng mở rộng sau.)*
+# Tạo virtual environment
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# Linux/macOS
+source venv/bin/activate
 
-4. **Văn bản pháp luật** (`data/legal_docs/`):
-   - `thong_tu_27_2025.txt` — nội dung Thông tư 27/2025/TT-NHNN (ít nhất các điều khoản về ngưỡng báo cáo, thời hạn STR, human-in-the-loop).
-   - **`thong_tu_32_2026.txt`** — nội dung Thông tư 32/2026/TT-BTC (thuế TNCN 0.1%) — **bắt buộc phải có**, đây là lỗ hổng đã phát hiện ở lượt rà soát trước.
-   - `fatf_recommendations.txt` — tóm tắt khuyến nghị FATF liên quan (tùy chọn, làm phong phú RAG).
+# Cài dependencies
+pip install -r requirements.txt
 
-5. **Mock banking data** (`data/mock/`):
-   - `scripts` hoặc file trực tiếp sinh `customers.json`: danh sách khách hàng giả lập (tên, CCCD, số tài khoản, ví liên kết) — dữ liệu này sẽ đi qua Privacy Layer ở Phần 4 trước khi vào agent.
+# Copy .env mẫu và điền key
+cp .env.example .env   # (tạo file .env, xem cấu hình bên dưới)
+```
 
-**Lưu ý quan trọng:**
-- Ở phần này **chưa cần gọi Privacy Layer** — đây chỉ là bước thu thập dữ liệu thô. Việc băm PII sẽ xảy ra ngay tại điểm nhận webhook trong `demo_run.py` (Phần 10), không phải ở đây.
-- Giữ file dữ liệu thô trong `.gitignore` (đừng commit file Elliptic/OFAC lớn lên git).
+### 3. Cấu hình `.env`
 
-**Cách kiểm tra:** chạy từng script (`00_healthcheck.py` kiểm tra kết nối API/file tồn tại, rồi `01`, `02`, `03`), xác nhận in ra số dòng/số bản ghi đọc được > 0, không lỗi.
+| Biến | Mô tả |
+|---|---|
+| `ETHERSCAN_API_KEY` | API key Etherscan (fetch lịch sử giao dịch) |
+| `LLM_API_KEY` | API key LLM (Groq / OpenAI-compatible) |
+| `LLM_BASE_URL` | Base URL LLM (mặc định Groq) |
+| `LLM_MODEL` | Model LLM (mặc định `llama-3.3-70b-versatile`) |
+| `PII_SALT` | Salt cố định cho SHA-256 băm PII |
+| `DEMO_MODE` | `True` — dùng NetworkX + mock; `False` — dùng Neo4j |
+| `GRAPH_SOURCE` | `"mock"` hoặc `"neo4j"` |
 
-**Hoàn thành khi:** cả 4 nguồn dữ liệu (Elliptic, OFAC XML, Etherscan, luật) đã có sẵn trên đĩa và đọc được.
+### 4. Chạy
 
----
+```bash
+# Khởi động API + frontend
+uvicorn api.main:app --reload --port 8000
+```
 
-## Phần 4 — Transaction Assistant + Huấn luyện mô hình
+Mở trình duyệt: **http://localhost:8000**
 
-**Mục tiêu:** có 1 agent độc lập chấm điểm rủi ro sơ bộ, đánh giá đúng bằng chỉ số phù hợp với dữ liệu mất cân bằng.
+Tài khoản mặc định: `nhanvien1` / `123456789` (cấu hình qua `AML_AUTH_USERNAME` / `AML_AUTH_PASSWORD`).
 
-**Việc cần làm:**
+### 5. Chạy test
 
-1. `agents/train_classifier.py`:
-   - Load DataFrame Elliptic từ Phần 3.
-   - **Chia tập theo `time_step`:** `time_step <= 34` → train, `> 34` → test. Không dùng `train_test_split` ngẫu nhiên.
-   - Loại bỏ nhãn "unknown".
-   - Huấn luyện `XGBClassifier` với `scale_pos_weight = (y_train==0).sum() / (y_train==1).sum()`.
-   - Lưu model ra `models/xgboost_aml.pkl`.
+```bash
+pytest tests/ -v
+```
 
-2. `tests/evaluate_model.py`:
-   - Tính Accuracy, Precision, Recall, F1 (dùng `precision_recall_fscore_support`, `average="binary"`).
-   - Tính **AUC-PR** bằng `average_precision_score` — **không dùng AUC-ROC làm chỉ số chính**.
-   - In bảng kết quả ra console đúng format SPEC.md mục 3.1, để bạn copy thẳng vào báo cáo khi điền số liệu thật.
+### 6. (Tùy chọn) Neo4j + GDS
 
-3. `agents/transaction_classifier.py`:
-   - Load model đã huấn luyện.
-   - Hàm nhận vào `AMLState` (đã qua Privacy Layer), trích đặc trưng giao dịch thô (giá trị VND quy đổi, phí gas, tần suất), trả về `risk_score_classifier`.
-   - Gọi `assert_no_raw_pii(state)` ngay đầu hàm.
-
-**Lưu ý quan trọng:**
-- Đừng vội hài lòng nếu Accuracy cao — với tỷ lệ illicit ~2%, một model dự đoán "tất cả hợp lệ" vẫn đạt ~98% Accuracy nhưng vô dụng. Nhìn vào Recall và AUC-PR trước.
-- Ghi lại con số thật (không phải ước lượng) vào báo cáo — hội đồng chắc chắn sẽ hỏi.
-
-**Cách kiểm tra:** chạy `python -m agents.train_classifier` rồi `python -m tests.evaluate_model`, xác nhận in ra bảng số liệu hợp lý (Recall không được = 0, AUC-PR nên > tỷ lệ nền 2%).
-
-**Hoàn thành khi:** có model đã lưu, bảng đánh giá in ra đầy đủ 5 chỉ số, `transaction_classifier.py` chạy độc lập trả về điểm số hợp lệ.
+```bash
+docker-compose up -d
+python db/neo4j_setup.py
+```
 
 ---
 
-## Phần 5 — KYC Assistant
+## 📂 Cấu trúc thư mục
 
-**Mục tiêu:** agent độc lập sàng lọc địa chỉ ví/tên qua danh sách trừng phạt.
-
-**Việc cần làm:**
-
-1. `agents/kyc_verification.py`:
-   - Load `data/processed/sample_ofac_wallet.txt` (đã xử lý sẵn từ Phần 3, không parse lại XML mỗi lần).
-   - Hàm nhận `AMLState`, so khớp `wallet_from`/`wallet_to` và `hashed_fullname` (chỉ so khớp trên bản đã băm hoặc trên các trường không nhạy cảm như địa chỉ ví) với danh sách đen.
-   - Dùng thuật toán so khớp mờ (Levenshtein Distance — thư viện `python-Levenshtein` hoặc `rapidfuzz`) để bắt các biến thể tên gần đúng.
-   - Trả về `kyc_flags`: danh sách cờ cảnh báo (ví dụ `["wallet_match_ofac", "name_similarity_92%"]`).
-   - Gọi `assert_no_raw_pii(state)` ngay đầu hàm.
-
-**Lưu ý quan trọng:**
-- Vì tên khách hàng đã bị băm ở Privacy Layer, việc so khớp mờ theo tên **chỉ khả thi nếu bạn so khớp trước khi băm** (tức so khớp xảy ra ngay trong hoặc trước Privacy Layer, agent này chỉ nhận kết quả cờ đã có sẵn) — hoặc **chỉ so khớp theo địa chỉ ví** (không cần biết tên) ở tầng agent này. Quyết định rõ 1 trong 2 cách và ghi chú lại trong code, đừng để mơ hồ — đây là điểm dễ gây lỗi logic nhất trong toàn bộ agent.
-  - *Khuyến nghị:* để KYC Assistant chỉ so khớp theo địa chỉ ví (không PII), còn việc so khớp tên diễn ra như một bước riêng **trong** Privacy Layer/webhook trước khi băm, kết quả trả ra dạng cờ boolean đính kèm vào state.
-
-**Cách kiểm tra:** chạy thử với 1 địa chỉ ví có trong danh sách đen mẫu (tự chèn 1 dòng test vào `sample_ofac_wallet.txt`) → xác nhận trả về cờ đúng; chạy với ví sạch → không có cờ.
-
-**Hoàn thành khi:** agent chạy độc lập, phân biệt đúng ví có/không nằm trong danh sách đen.
-
----
-
-## Phần 6 — Graph Assistant
-
-**Mục tiêu:** agent phân tích cấu trúc dòng tiền đa hop.
-
-**Việc cần làm:**
-
-1. Cài Neo4j Community Edition local (hoặc dùng chế độ `DEMO_MODE=True` với NetworkX nếu chưa muốn cài Neo4j ngay).
-2. `db/neo4j_setup.py`: script tạo schema/constraint cơ bản (node `Wallet`, relationship `TRANSFER`).
-3. `agents/graph_aml.py`:
-   - Nếu `DEMO_MODE=False`: chạy Cypher query trên Neo4j.
-   - Nếu `DEMO_MODE=True`: dựng đồ thị tạm bằng NetworkX từ dữ liệu Etherscan đã crawl (Phần 3).
-   - Cài đặt PPR (dùng `networkx.pagerank` cho demo, hoặc Neo4j GDS `gds.pageRank` cho production) với vector cá nhân hóa tập trung vào ví đen đã biết từ KYC Assistant.
-   - Cài đặt Louvain (`networkx.algorithms.community.louvain_communities` cho demo, hoặc Neo4j GDS Louvain cho production).
-   - Trả về `graph_risk_score` (dựa trên PPR) và thông tin cộng đồng (dùng để phát hiện đảo gian lận).
-   - Gọi `assert_no_raw_pii(state)` ngay đầu hàm.
-
-**Lưu ý quan trọng:**
-- Đây là agent phức tạp kỹ thuật nhất — làm việc trên dữ liệu ví thật (không nhạy cảm PII vì chỉ là địa chỉ công khai on-chain), nên **không cần** Privacy Layer áp dụng lên địa chỉ ví, chỉ áp dụng lên thông tin định danh khách hàng ngoài đời thực.
-- Nếu chạy demo với NetworkX, số lượng node nên giới hạn (vài trăm đến vài nghìn ví) để chạy mượt trên máy cá nhân — không cần load toàn bộ Etherscan.
-
-**Cách kiểm tra:** chạy thử với 1 ví có kết nối gần (1-2 hop) tới ví đen đã biết → `graph_risk_score` phải cao hơn rõ rệt so với ví không có kết nối nào.
-
-**Hoàn thành khi:** agent chạy độc lập, phân biệt được ví "gần" ví đen và ví "xa".
-
----
-
-## Phần 7 — RAG Assistant
-
-**Mục tiêu:** agent tra cứu và trích dẫn đúng căn cứ pháp lý.
-
-**Việc cần làm:**
-
-1. `db/vector_db.py`: khởi tạo ChromaDB local, load và embed nội dung từ `data/legal_docs/` (cả `thong_tu_27_2025.txt` **và** `thong_tu_32_2026.txt`).
-2. `agents/regulation_rag.py`:
-   - Nhận đặc trưng cấu trúc từ Graph Assistant (`graph_risk_score`, community ID) + `risk_score_classifier`.
-   - Mã hóa các đặc trưng này thành câu ngữ cảnh (ví dụ: "Giao dịch có PPR score cao, thuộc cộng đồng nghi vấn, giá trị vượt ngưỡng 500 triệu VND").
-   - Truy vấn ChromaDB, lấy đoạn luật liên quan nhất.
-   - Nếu giao dịch có yếu tố tài sản số phát sinh thu nhập → truy vấn thêm Thông tư 32 để trích dẫn nghĩa vụ thuế 0.1%.
-   - Gọi API LLM (OpenAI/Gemini) để tổng hợp thành đoạn văn bản lập luận pháp lý ngắn gọn, có trích dẫn.
-   - Trả về `legal_citations`.
-
-**Lưu ý quan trọng:**
-- Đảm bảo cả 2 nguồn luật (27 và 32) đều được embed — kiểm tra bằng cách thử 1 câu hỏi chỉ liên quan tới thuế, xác nhận RAG trả về đúng đoạn từ Thông tư 32 chứ không chỉ luôn trả Thông tư 27.
-
-**Cách kiểm tra:** thử 2 query mẫu — 1 câu về ngưỡng báo cáo (phải trả Thông tư 27), 1 câu về thuế tài sản số (phải trả Thông tư 32).
-
-**Hoàn thành khi:** agent phân biệt đúng nguồn luật theo ngữ cảnh truy vấn.
+```
+TPers_prj/
+├── agents/                # 5 Assistant + Alert Report + Training
+│   ├── aggregation_monitor.py
+│   ├── alert_report.py
+│   ├── calibrate_classifier_threshold.py
+│   ├── decision_engine.py
+│   ├── graph_aml.py
+│   ├── kyc_verification.py      # Sanctions Assistant
+│   ├── regulation_rag.py
+│   ├── train_classifier.py
+│   ├── transaction_classifier.py
+│   └── ...
+├── api/
+│   └── main.py            # FastAPI + serve frontend
+├── core/
+│   ├── config.py          # Cấu hình .env
+│   ├── graph_builder.py   # LangGraph pipeline (PipelineRun)
+│   ├── graph_provider.py  # Mock / Neo4j data source
+│   ├── privacy_layer.py   # SHA-256 băm PII
+│   ├── name_screening.py  # Fuzzy name-matching
+│   ├── state.py           # AMLState
+│   └── audit_logger.py
+├── db/
+│   ├── neo4j_setup.py
+│   └── vector_db.py       # ChromaDB
+├── data/
+│   ├── legal_docs/        # Thông tư 27, Luật PCRT 2022, FATF
+│   ├── mock/              # Scenario mock + customers
+│   ├── processed/         # Dataset clean, feature schema
+│   └── raw/               # Dữ liệu thô (git-ignored)
+├── frontend_html/         # HTML/CSS/JS dashboard
+├── models/                # XGBoost .pkl, threshold
+├── pictures/              # Ảnh minh họa / screenshot
+├── prompts/
+├── reports/
+│   └── output/            # STR .docx (git-ignored)
+├── scripts/               # Data pipeline, feature builder...
+├── tests/                 # pytest
+├── docker-compose.yml
+├── requirements.txt
+└── ...
+```
 
 ---
 
-## Phần 8 — Report Assistant
+## 📊 Kết quả mô hình
 
-**Mục tiêu:** tổng hợp toàn bộ kết quả thành bản dự thảo STR.
+**Dataset:** Ethereum Fraud Detection (Farrugia) — 4.675 ví, 37 features, stratify 20% test.
 
-**Việc cần làm:**
+| Cấu hình | Precision | Recall | F1 | AUC-PR |
+|---|---|---|---|---|
+| scale_pos_weight_only | 0.9745 | 0.9633 | 0.9689 | 0.9950 |
+| **smote_only (chọn)** | **0.9813** | **0.9633** | **0.9722** | **0.9955** |
+| smote_plus_scale_pos_weight | 0.9813 | 0.9633 | 0.9722 | 0.9955 |
 
-1. `agents/alert_report.py`:
-   - Tính `final_risk_score = 0.2*risk_score_classifier + 0.3*len(kyc_flags biến đổi thành số) + 0.5*graph_risk_score` (chuẩn hóa các thành phần về cùng thang điểm 0-1 trước khi cộng — đây là chi tiết kỹ thuật cần làm cẩn thận, ghi rõ công thức chuẩn hóa trong docstring).
-   - Docstring giải thích lý do chọn trọng số 0.2/0.3/0.5 (đã có sẵn nội dung trong SPEC.md mục 3.5, copy vào).
-   - Nếu `final_risk_score >= 0.7` (ngưỡng có thể điều chỉnh, ghi rõ lý do chọn ngưỡng này): dùng `python-docx` điền vào template `reports/templates/` (Mẫu số 04 theo Thông tư 27), đính kèm mô tả sơ đồ dòng tiền (có thể render ảnh từ Graph Assistant nếu có thời gian, hoặc mô tả bằng text danh sách các hop).
-   - Lưu file ra `reports/output/STR_REPORT_<tx_hash>.docx`.
-   - Set `approval_status = "pending"`.
-
-**Lưu ý quan trọng:**
-- Đây là nơi duy nhất trong toàn hệ thống được phép "giải mã ngược" để hiển thị tên khách hàng cho chuyên viên xem trong báo cáo cuối — nhưng phải tra cứu qua 1 bảng ánh xạ `hash → tên gốc` được lưu riêng, bảo vệ nghiêm ngặt (không nằm chung với `AMLState`), không phải giải mã hash SHA-256 (không thể giải mã 1 chiều) mà là tra bảng lookup được lưu an toàn tại thời điểm Privacy Layer băm dữ liệu.
-
-**Cách kiểm tra:** chạy thử với 1 state mẫu có `final_risk_score` cao → xác nhận file `.docx` được tạo ra, mở lên đọc được nội dung đầy đủ.
-
-**Hoàn thành khi:** file STR mẫu được sinh ra đúng định dạng, đọc được, có đủ thông tin.
+- **Threshold θ = 0.8748** — calibrate bằng precision-recall curve, target recall 0.9 (đạt recall 0.9014, precision 0.9874).
+- Chỉ số chính: **Recall** và **AUC-PR** (phù hợp bài toán mất cân bằng nhãn).
 
 ---
 
-## Phần 9 — Ghép nối LangGraph (`core/graph_builder.py`)
+## 🧪 Kiểm thử
 
-**Mục tiêu:** chỉ làm phần này khi cả 5 agent + Privacy Layer đã chạy độc lập ổn (Phần 2, 4-8).
+Các test tự động bao phủ phần lõi:
 
-**Việc cần làm:**
-1. Định nghĩa graph LangGraph với các node: `privacy_layer → transaction_classifier → kyc_verification → graph_aml (2 nhánh song song có thể) → regulation_rag → alert_report → interrupt (chờ duyệt)`.
-2. Cấu hình `interrupt` tại node sau `alert_report` — dừng lại, trả state hiện tại ra ngoài để UI hiển thị.
-3. Viết hàm `resume_after_approval(state, decision)` xử lý khi chuyên viên Approve/Reject.
-4. Có fallback `run_simple_pipeline()` (gọi tuần tự các hàm Python thường) cho trường hợp không cài LangGraph — theo đúng tinh thần v1 cũ, giữ lại pattern này.
-
-**Lưu ý quan trọng:**
-- Đừng sửa logic bên trong bất kỳ agent nào ở bước này — nếu graph chạy sai, khả năng cao là do cách nối node/cạnh, không phải do agent (agent đã test độc lập ở các phần trước).
-
-**Cách kiểm tra:** chạy toàn bộ pipeline với 1 giao dịch mẫu từ đầu đến điểm interrupt, xác nhận dừng đúng chỗ và state đầy đủ dữ liệu từ tất cả agent.
-
-**Hoàn thành khi:** pipeline đầy đủ chạy được từ đầu đến điểm chờ duyệt, không lỗi.
+- `tests/test_state.py` — AMLState
+- `tests/test_privacy.py` — Privacy Layer (băm, chốt PII)
+- `tests/test_classifier.py`, `tests/test_feature_vector.py` — XGBoost + feature thật
+- `tests/test_decision_engine.py` — 5 rule PASS/REVIEW/REPORT
+- `tests/test_aggregation_monitor.py` — structuring/smurfing
+- `tests/test_insufficient_data.py` — zero-tx wallet → forced REVIEW
+- `tests/test_graph_provider.py` — mock/neo4j không trộn lẫn
+- `tests/test_legal_rag_status.py` — RAG OK/UNAVAILABLE không giả vờ ổn
+- `tests/test_report_context_isolation.py` — PII không lẫn giữa requests
 
 ---
 
-## Phần 10 — API Gateway + UI + Demo Script
+## 🚧 Trạng thái & Giới hạn
 
-**Mục tiêu:** lớp trình diễn cuối cùng, làm sau khi mọi thứ phía dưới đã ổn định.
+Project ở mức **Prototype/MVP chạy được end-to-end**:
 
-**Việc cần làm:**
-
-1. `api/main.py` (FastAPI):
-   - 1 endpoint `POST /screen-wallet` — nhận địa chỉ ví, trả về kết quả sàng lọc OFAC + risk score sơ bộ (dùng lại `kyc_verification.py` + `transaction_classifier.py`, không cần chạy full LangGraph). Đây là demo cho gói API-as-a-Service.
-2. `frontend_html/`: FE thuần HTML/JS/CSS do `api/main.py` (FastAPI) tự phục vụ — hiển thị kết quả pipeline, điểm dừng chờ duyệt với nút Approve/Reject, link tải file `.docx` khi Approve.
-3. `demo_run.py`: script chạy full workflow từ webhook giả lập đến STR, dùng để demo trực tiếp khi thi/báo cáo.
-
-**Lưu ý quan trọng:**
-- UI không cần đẹp, chỉ cần thể hiện đúng luồng nghiệp vụ 8 bước trong SPEC.md mục 2 — hội đồng chấm ý tưởng/kỹ thuật, không chấm giao diện.
-
-**Cách kiểm tra:** chạy `uvicorn api.main:app --reload --port 8000`, mở `http://localhost:8000`, thử toàn bộ luồng từ nhập giao dịch đến tải file STR.
-
-**Hoàn thành khi:** demo chạy mượt từ đầu đến cuối không cần can thiệp thủ công vào code.
+- ✅ Pipeline, API, tests, model chạy thực sự; Neo4j/GDS + ChromaDB + LLM đã verify chạy thật (xem `logs/`).
+- ⚠️ Dữ liệu graph là demo scenarios / seed test — **chưa có pipeline ingest blockchain thực tế quy mô lớn**.
+- ⚠️ Dữ liệu off-chain (Core Banking) cho Aggregation Monitor là **mock 1 account**.
+- ⚠️ Ngưỡng "medium" Rule 5 (REVIEW) là giả định tạm, chưa calibrate bằng dữ liệu thật.
+- ⚠️ Chỉ hỗ trợ Ethereum (giới hạn Etherscan free).
 
 ---
 
-## Phần 11 — Kiểm thử tổng thể & hoàn thiện báo cáo
+## 🔮 Định hướng phát triển
 
-**Việc cần làm:**
-1. Chạy lại toàn bộ `tests/` một lượt, đảm bảo pass hết.
-2. Điền số liệu thật (Recall, F1, AUC-PR) từ Phần 4 vào báo cáo khả thi (thay chỗ `__%` trong bảng).
-3. Copy công thức Weighted Risk Score + lý do chọn trọng số từ code vào báo cáo (mục 6/7).
-4. Rà lại 1 lượt: mọi thứ trong `SPEC.md` mục "Việc cần bạn xác nhận" (BscScan, salt) đã được quyết định và ghi rõ trong README/báo cáo.
-5. Chuẩn bị sẵn câu trả lời cho câu hỏi dễ bị hỏi nhất: *"Recall bao nhiêu, tại sao ưu tiên Recall/AUC-PR hơn Accuracy?"*
-
-**Hoàn thành khi:** bạn có thể chạy demo trực tiếp trước hội đồng mà không lo lỗi, và trả lời được câu hỏi kỹ thuật dựa trên số liệu thật.
+1. Ingest đồ thị blockchain thực tế vào Neo4j liên tục (indexer).
+2. Nối Core Banking thật cho `wallet_tx_history`.
+3. Calibrate ngưỡng "medium" Rule 5 bằng dữ liệu thật.
+4. Mở rộng multi-chain (BSC, Base, Polygon...).
+5. Hiển thị SHAP đầy đủ (waterfall/force plot) trong UI.
+6. Auth nâng cấp: JWT + RBAC + persistent session.
+7. Real-time monitoring + alerting trên đồ thị.
 
 ---
 
-### Nguyên tắc xuyên suốt khi làm từng phần với AI
-Ở mỗi phần, khi nhờ AI viết code, dùng đúng mẫu câu:
-> "Đây là SPEC.md. Đã build xong đến Phần [X]. Viết ĐỘC LẬP module của Phần [Y] theo đúng mục [số mục] trong SPEC.md. Không sửa file cũ. Nếu cần input từ phần chưa làm, dùng mock data và ghi TODO."
+## 📄 Giấy phép
 
-Không gộp 2 phần vào 1 lệnh, kể cả khi thấy "có vẻ đơn giản, làm luôn cho nhanh" — chính suy nghĩ đó là nguyên nhân gây mất định hướng ở bản v1.
+Dự án phục vụ mục đích học tập / nghiên cứu / demo. Vui lòng không sử dụng cho mục đích sản xuất khi chưa rà soát với văn bản pháp luật gốc và chuyên gia pháp lý.

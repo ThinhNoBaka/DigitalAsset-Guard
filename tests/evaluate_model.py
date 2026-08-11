@@ -2,6 +2,13 @@
 tests/evaluate_model.py
 Đánh giá mô hình XGBoost. Ưu tiên xuất các chỉ số Recall, F1 và AUC-PR.
 
+[THAY ĐỔI 2026-08-08] Chuyển từ Elliptic sang Ethereum Fraud Detection:
+- Model được train bởi agents/train_classifier.py trên
+  data/processed/ethereum_fraud_training_clean.csv.
+- Test set dùng chung là data/processed/ethereum_fraud_test.csv (test split
+  đã được agents/train_classifier.py tách stratified 20% và ghi ra khi train).
+- Cột feature = toàn bộ cột trừ nhãn (FLAG), dùng đúng feature_names model.
+
 [V2-1 -- THAY_DOI_V2.md] Sau phần đánh giá model CHÍNH THỨC (model đã được
 agents/train_classifier.py chọn là tốt nhất), in thêm bảng so sánh Recall/F1/
 AUC-PR THẬT của cả 3 cấu hình xử lý mất cân bằng nhãn đã thử nghiệm (chỉ
@@ -16,7 +23,7 @@ from sklearn.metrics import precision_recall_fscore_support, average_precision_s
 from pathlib import Path
 
 MODEL_PATH = Path("models/xgboost_aml.pkl")
-TEST_DATA = Path("data/raw/elliptic/elliptic_test.csv")
+TEST_DATA = Path("data/processed/ethereum_fraud_test.csv")
 COMPARISON_PATH = Path("tests/model_comparison_v2.json")
 
 def evaluate():
@@ -28,9 +35,14 @@ def evaluate():
     clf = joblib.load(MODEL_PATH)
     df_test = pd.read_csv(TEST_DATA)
 
-    drop_cols = ['txId', 'time_step', 'class']
-    X_test = df_test.drop(columns=drop_cols)
-    y_true = df_test['class']
+    # Feature names model lưu lúc train (khớp 100% thứ tự) -- tránh mismatch
+    booster = clf.get_booster()
+    feature_names = booster.feature_names
+    if not feature_names:
+        feature_names = [f"feat_{i}" for i in range(clf.n_features_in_)]
+
+    X_test = df_test[feature_names]
+    y_true = df_test['FLAG']
 
     # Dự đoán nhãn (0/1) và xác suất
     y_pred = clf.predict(X_test)

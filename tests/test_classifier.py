@@ -12,11 +12,11 @@ Sửa theo kiến trúc hiện tại (pivot sang Decision Engine rule-based comp
   về Aggregation Monitor: `analyze_aggregation` ghi `is_large_tx =
   amount_vnd >= REPORT_THRESHOLD_VND` (agents/aggregation_monitor.py). Test
   chuyển ý định đó sang đúng hàm này.
-- LƯU Ý HẠN CHẾ ĐÃ BIẾT (PROJECT_SUMMARY mục 6 #1): `analyze_transaction`
-  đang dùng feature vector MOCK (zero-vector 166 chiều, chỉ gán amount_vnd
-  vào slot 0) — model không phân biệt được 50tr vs 600tr (score ≈ 0.000284
-  cho cả hai). Vì vậy test analyze_transaction KHÔNG assert tương quan
-  amount → score; chỉ assert score hợp lệ + top_features tồn tại.
+- [FIX 2026-08-08] `analyze_transaction` KHÔNG còn dùng mock vector ở production
+  (Việc 1 — nối feature_builder thật; Việc 2 — guard mock). Các test ở đây
+  KHÔNG có wallet_record thật nên phải truyền `allow_mock=True` một cách TƯỜNG
+  MINH (đúng quy định: chỉ demo/test mới được dùng mock). Test build feature
+  vector THẬT (so khớp feature_schema.json) nằm ở tests/test_feature_vector.py.
 """
 import pytest
 
@@ -48,7 +48,8 @@ def test_classify_normal_transaction():
     assert agg["is_large_tx"] is False
 
     # Transaction Assistant: score hợp lệ trong [0, 1] (không phải None).
-    scored = analyze_transaction(dict(state))
+    # Test path — không có wallet_record thật → allow_mock=True TƯỜNG MINH.
+    scored = analyze_transaction(dict(state), allow_mock=True)
     assert scored["classifier_score"] is not None
     assert 0.0 <= scored["classifier_score"] <= 1.0
     # SHAP per-transaction: nếu shap đã cài thì top_features có dữ liệu.
@@ -69,6 +70,20 @@ def test_classify_high_value_transaction():
     assert agg["is_large_tx"] is True
 
     # Transaction Assistant: vẫn phải cho score hợp lệ.
-    scored = analyze_transaction(dict(state))
+    scored = analyze_transaction(dict(state), allow_mock=True)
     assert scored["classifier_score"] is not None
     assert 0.0 <= scored["classifier_score"] <= 1.0
+
+
+def test_analyze_transaction_requires_wallet_record_production_path():
+    """
+    Việc 2 — Guard mock: production path (KHÔNG truyền allow_mock) mà state
+    thiếu wallet_record phải raise NotImplementedError, KHÔNG âm thầm dùng
+    mock vector.
+    """
+    state = _base_state("TX_GUARD", 100_000_000.0)
+    with pytest.raises(NotImplementedError) as excinfo:
+        analyze_transaction(dict(state))
+    message = str(excinfo.value)
+    assert "wallet_record" in message
+    assert "allow_mock" in message

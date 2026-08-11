@@ -46,6 +46,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 
 from core.state import AMLState
+from core.config import build_report_entity_config
 from core.privacy_layer import privacy_layer_node
 
 from agents.aggregation_monitor import analyze_aggregation
@@ -120,9 +121,25 @@ def _route_after_decision(state: AMLState):
 # BUILD LANGGRAPH
 # =============================================================================
 
-def build_pipeline(checkpointer=None):
+def build_pipeline(
+    checkpointer=None,
+    report_customer_info=None,
+    report_entity_info=None,
+):
     """
     Build và compile LangGraph pipeline.
+
+    [FIX 2026-08-09 — STR thiếu thông tin định danh khách hàng]
+    `report_customer_info` (PII plaintext: customer_name/customer_id_number/
+    customer_account_number) và `report_entity_info` (config tĩnh hệ thống:
+    reporting_entity_name/aml_responsible_person/reporter_name...) được truyền
+    qua closure vào node alert_report — KHÔNG nằm trong state channels, nên
+    KHÔNG bao giờ bị LangGraph checkpoint lưu (kể cả checkpointer persistent),
+    không bao giờ chạm assert_no_raw_pii, không lẫn PII giữa các request.
+
+    ⚠️ CẢNH BÁO BẮT BUỘC: KHÔNG cache compiled graph ở module-level. Mỗi
+    PipelineRun MỚI phải gọi build_pipeline() mới vì node alert_report closure
+    chứa PII plaintext riêng của ĐÚNG request đó. Cache/reuse = LẪN PII.
 
     Flow:
 
@@ -224,12 +241,20 @@ def build_pipeline(checkpointer=None):
         ),
     )
 
+    # [FIX 2026-08-09] Dùng default-arg (không dùng closure trực tiếp) để bẫy
+    # giá trị report_customer_info/report_entity_info tại thời điểm build — tránh
+    # late-binding closure (lambda bắt biến ngoài đánh giá lúc chạy, có thể đã
+    # bị ghi đè nếu cùng function tái sử dụng — đã cấm ở cảnh báo đầu hàm).
     builder.add_node(
         "alert_report",
-        lambda state: timed_step(
+        lambda state, _rci=report_customer_info, _rei=report_entity_info: timed_step(
             "alert_report",
             state.get("tx_hash"),
-            generate_alert_report,
+            lambda s, rci=_rci, rei=_rei: generate_alert_report(
+                s,
+                report_customer_info=rci,
+                report_entity_info=rei,
+            ),
             state,
         ),
     )
@@ -368,8 +393,31 @@ class PipelineRun:
         # run() → checkpoint → resume() phải sử dụng CÙNG checkpointer.
         self.checkpointer = MemorySaver()
 
+        # [FIX 2026-08-09 — STR thiếu thông tin định danh khách hàng]
+        # Capture PII plaintext TẠI THỜI ĐIỂM NÀY — state ban đầu vẫn chứa raw
+        # fullname/id_number/account_number TRƯỚC khi privacy_layer_node băm.
+        # Chỉ dùng khi decision=REPORT (alert_report cần in tên/CCCD/STK .docx).
+        # KHÔNG đưa vào state channels — truyền qua closure build_pipeline,
+        # nên không bao giờ bị LangGraph checkpoint lưu, không chạm
+        # assert_no_raw_pii, không lẫn PII giữa các request.
+        # Mapping ĐÚNG key mà agents/alert_report.py đọc (customer_name/
+        # customer_id_number/customer_account_number) — KHÔNG dùng key payload
+        # gốc (fullname/id_number/account_number) vì generate_alert_report
+        # chỉ đọc rc.get("customer_*"). Nếu lệch key, report vẫn in
+        # "[CHƯA CUNG CẤP]" dù PII đã capture.
+        report_customer_info = {}
+        if self.state.get("fullname") is not None:
+            report_customer_info["customer_name"] = self.state["fullname"]
+        if self.state.get("id_number") is not None:
+            report_customer_info["customer_id_number"] = self.state["id_number"]
+        if self.state.get("account_number") is not None:
+            report_customer_info["customer_account_number"] = self.state["account_number"]
+        report_entity_info = build_report_entity_config()
+
         self.graph = build_pipeline(
             checkpointer=self.checkpointer,
+            report_customer_info=report_customer_info,
+            report_entity_info=report_entity_info,
         )
 
         self.config = {

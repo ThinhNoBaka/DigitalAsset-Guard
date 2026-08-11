@@ -73,7 +73,16 @@ def _run_full_pipeline(scenario: Dict[str, Any]) -> Dict[str, Any]:
     tx_hash = state.get("tx_hash")
 
     # Bước 2: Transaction Classifier
-    state = timed_step("transaction_classifier", tx_hash, analyze_transaction, state)
+    # VIỆC 2 — Guard mock: demo_runner KHÔNG có wallet_record thật (kịch bản dùng
+    # địa chỉ giả 0xsmurf_*), nên phải truyền allow_mock=True một cách TƯỜNG MINH.
+    # KHÔNG được set default ngầm ở đâu khác; production path (core/graph_builder.py,
+    # api/main.py) không được phép rơi vào nhánh mock.
+    state = timed_step(
+        "transaction_classifier",
+        tx_hash,
+        lambda s: analyze_transaction(s, allow_mock=True),
+        state,
+    )
 
     # Bước 3: Graph Assistant (đọc mock_graph_edges/mock_blacklisted_wallets ở trên).
     # SPEC_v2 §1: Graph chạy TRƯỚC Sanctions -- current_wallet_is_sanctioned tự

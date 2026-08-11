@@ -1,104 +1,391 @@
-THÔNG TƯ SỐ 27/2025/TT-NHNN
-QUY ĐỊNH VỀ PHÒNG, CHỐNG RỬA TIỀN TRONG LĨNH VỰC NGÂN HÀNG
+THÔNG TƯ 27/2025/TT-NHNN
+HƯỚNG DẪN THỰC HIỆN MỘT SỐ ĐIỀU CỦA LUẬT PHÒNG, CHỐNG RỬA TIỀN
 
-(Trích xuất các điều khoản liên quan đến CTR/STR và tài sản mã hóa — dùng cho demo PoC)
+============================================================
+METADATA
+============================================================
+source_id: TT27_2025_TT_NHNN
+source_type: PRIMARY_LEGAL
+authority: Ngân hàng Nhà nước Việt Nam
+document_number: 27/2025/TT-NHNN
+issue_date: 2025-09-15
+effective_date: 2025-11-01
+domain: phòng, chống rửa tiền
+official_scope: đánh giá rủi ro, quản lý rủi ro, phân loại khách hàng, quy định nội bộ PCRT, báo cáo giao dịch có giá trị lớn, báo cáo giao dịch đáng ngờ, giao dịch chuyển tiền điện tử, báo cáo giao dịch chuyển tiền điện tử, báo cáo dữ liệu điện tử và một số quy định về khai báo hải quan.
 
-===================================================================
+IMPORTANT_SOURCE_NOTE:
+- Đây là bản trích xuất có cấu trúc phục vụ Legal RAG/PoC.
+- Không coi các phần "DigitalAsset Guard mapping" là quy định pháp luật.
+- Không tự suy diễn "giao dịch chuyển tiền điện tử" thành "giao dịch tài sản mã hóa/crypto".
+- Các dấu hiệu như fan-out, fan-in, mixer, chain-hopping, circular flow, ví mới... không được gán cho Thông tư 27/2025/TT-NHNN nếu văn bản không nêu.
+- Ngưỡng 500.000.000 đồng và 1.000 USD trong Điều 9 là NGƯỠNG BÁO CÁO GIAO DỊCH CHUYỂN TIỀN ĐIỆN TỬ theo Thông tư; không được gọi là ngưỡng CTR chung hoặc ngưỡng crypto.
 
-CHƯƠNG I. QUY ĐỊNH CHUNG
+============================================================
+ĐIỀU 1. PHẠM VI ĐIỀU CHỈNH
+============================================================
+Thông tư quy định về:
+1. Tiêu chí, phương pháp đánh giá rủi ro về rửa tiền của đối tượng báo cáo.
+2. Quy trình quản lý rủi ro về rửa tiền và phân loại khách hàng theo mức độ rủi ro.
+3. Quy định nội bộ về phòng, chống rửa tiền.
+4. Chế độ báo cáo giao dịch có giá trị lớn phải báo cáo.
+5. Chế độ báo cáo giao dịch đáng ngờ.
+6. Giao dịch chuyển tiền điện tử.
+7. Chế độ báo cáo giao dịch chuyển tiền điện tử.
+8. Hình thức và thời hạn báo cáo dữ liệu điện tử.
+9. Mức giá trị và giấy tờ xuất trình cho hải quan cửa khẩu khi mang theo ngoại tệ tiền mặt, đồng Việt Nam tiền mặt, công cụ chuyển nhượng, kim khí quý, đá quý vượt mức quy định.
 
-Điều 1. Phạm vi điều chỉnh
-Thông tư này quy định chi tiết một số điều của Luật Phòng, chống rửa tiền về:
-a) Nhận biết và xác minh thông tin khách hàng (KYC);
-b) Phân loại khách hàng theo mức độ rủi ro;
-c) Báo cáo giao dịch đáng ngờ (STR) và giao dịch có giá trị lớn (CTR);
-d) Áp dụng đối với giao dịch liên quan đến tài sản mã hóa (crypto asset).
+LEGAL_REFERENCE:
+Điều 1 Thông tư 27/2025/TT-NHNN.
 
-Điều 3. Giải thích từ ngữ
-- "Giao dịch có giá trị lớn" (CTR - Currency Transaction Report): Giao dịch có giá trị từ 400 triệu đồng trở lên hoặc tương đương bằng ngoại tệ, tài sản mã hóa.
-- "Giao dịch đáng ngờ" (STR - Suspicious Transaction Report): Giao dịch có một hoặc nhiều dấu hiệu nghi ngờ rửa tiền, tài trợ khủng bố.
-- "Tài sản mã hóa" (Crypto asset): Bao gồm tiền mã hóa (cryptocurrency), token, stablecoin và các dạng tài sản kỹ thuật số khác được giao dịch trên blockchain.
+============================================================
+ĐIỀU 2. ĐỐI TƯỢNG ÁP DỤNG
+============================================================
+Thông tư áp dụng đối với:
+1. Tổ chức tài chính.
+2. Tổ chức, cá nhân kinh doanh ngành, nghề phi tài chính có liên quan.
+3. Tổ chức, cá nhân Việt Nam, tổ chức nước ngoài, người nước ngoài, tổ chức quốc tế có giao dịch với tổ chức tài chính hoặc tổ chức, cá nhân kinh doanh ngành, nghề phi tài chính có liên quan.
+4. Tổ chức, cá nhân khác có liên quan đến phòng, chống rửa tiền.
 
-===================================================================
+LEGAL_REFERENCE:
+Điều 2 Thông tư 27/2025/TT-NHNN.
 
-CHƯƠNG II. NHẬN BIẾT KHÁCH HÀNG (KYC)
+============================================================
+ĐIỀU 3. TIÊU CHÍ, PHƯƠNG PHÁP ĐÁNH GIÁ RỦI RO VỀ RỬA TIỀN
+============================================================
 
-Điều 5. Nhận biết khách hàng lần đầu
-1. Tổ chức tín dụng phải thu thập và xác minh thông tin nhận dạng khách hàng trước khi thiết lập mối quan hệ kinh doanh hoặc thực hiện giao dịch, bao gồm:
-   a) Họ tên đầy đủ, ngày sinh, quốc tịch;
-   b) Số CCCD/CMND/Hộ chiếu;
-   c) Địa chỉ cư trú;
-   d) Địa chỉ ví crypto (wallet address) nếu giao dịch liên quan tài sản mã hóa.
+3.1. Tiêu chí đánh giá rủi ro
+Tiêu chí đánh giá rủi ro về rửa tiền bao gồm:
+- Tiêu chí nguy cơ rửa tiền.
+- Tiêu chí mức độ phù hợp của chính sách, quy định nội bộ về phòng, chống rửa tiền.
 
-Điều 7. Đối chiếu danh sách đen
-1. Tổ chức tín dụng phải đối chiếu thông tin khách hàng với:
-   a) Danh sách cấm vận của OFAC (Office of Foreign Assets Control);
-   b) Danh sách trừng phạt của Liên Hợp Quốc;
-   c) Danh sách cảnh báo của NHNN Việt Nam;
-   d) Danh sách nội bộ của tổ chức tín dụng.
-2. Việc đối chiếu phải thực hiện cả matching chính xác (exact match) và matching mờ (fuzzy match) với ngưỡng tương đồng tối thiểu 85%.
+3.2. Nguy cơ rửa tiền từ môi trường kinh doanh
+Bao gồm nguy cơ từ:
+- Ngành, lĩnh vực.
+- Quốc gia, vùng lãnh thổ mà đối tượng báo cáo hoạt động theo kết quả đánh giá rủi ro quốc gia về rửa tiền và do đối tượng báo cáo tự xác định.
 
-===================================================================
+3.3. Nguy cơ rửa tiền từ hoạt động kinh doanh
+Bao gồm nguy cơ từ:
+- Khách hàng.
+- Sản phẩm, dịch vụ cung cấp cho khách hàng.
+- Cách thức phân phối sản phẩm, dịch vụ.
 
-CHƯƠNG III. BÁO CÁO GIAO DỊCH
+3.4. Mức độ phù hợp của chính sách/quy định nội bộ
+Bao gồm:
+- Tính toàn diện của chính sách, quy định nội bộ.
+- Tính hiệu quả của việc thực hiện chính sách, quy định nội bộ.
 
-Điều 10. Báo cáo giao dịch có giá trị lớn (CTR)
-1. Tổ chức tín dụng phải báo cáo NHNN khi phát hiện giao dịch:
-   a) Giao dịch tiền mặt có giá trị từ 400.000.000 đồng trở lên;
-   b) Giao dịch chuyển tiền điện tử có giá trị từ 500.000.000 đồng trở lên;
-   c) Giao dịch tài sản mã hóa (crypto) có giá trị quy đổi từ 400.000.000 đồng trở lên.
-2. Thời hạn báo cáo: Trong vòng 24 giờ kể từ khi phát hiện giao dịch.
+Tính toàn diện xem xét:
+- Tính đầy đủ.
+- Mức độ phù hợp với quy định pháp luật.
+- Mức độ phù hợp với mức độ rủi ro của đối tượng báo cáo.
+- Việc định kỳ đánh giá lại để phù hợp với thay đổi pháp luật và thực tiễn.
 
-Điều 11. Báo cáo giao dịch đáng ngờ (STR)
-1. Tổ chức tín dụng phải lập và gửi STR khi phát hiện giao dịch có một hoặc nhiều dấu hiệu sau:
-   a) Giao dịch phức tạp, bất thường, không phù hợp với hoạt động kinh doanh thông thường;
-   b) Giao dịch liên quan đến cá nhân hoặc tổ chức nằm trong danh sách cấm vận quốc tế;
-   c) Giao dịch chia nhỏ (structuring) nhằm tránh ngưỡng báo cáo CTR;
-   d) Giao dịch crypto qua nhiều ví trung gian (layering) trong thời gian ngắn;
-   e) Giao dịch từ/đến ví tự quản (self-hosted wallet) không có thông tin KYC;
-   f) Giao dịch vào ban đêm (23h-5h) với giá trị bất thường.
-2. Mẫu báo cáo STR theo Mẫu số 04 ban hành kèm theo Thông tư này.
-3. Thời hạn gửi báo cáo: Trong vòng 24 giờ kể từ khi phát hiện dấu hiệu đáng ngờ.
+Tính hiệu quả xem xét:
+- Hiệu quả thực hiện các biện pháp PCRT.
+- Mức độ hiểu biết và tuân thủ quy tắc, chuẩn mực nghề nghiệp của lãnh đạo/nhân viên liên quan.
+- Hiệu quả quản lý công tác PCRT.
 
-Điều 12. Dấu hiệu đáng ngờ liên quan đến tài sản mã hóa
-1. Giao dịch từ/đến địa chỉ ví nằm trong danh sách trừng phạt OFAC;
-2. Giao dịch có cấu trúc fan-out (phân tách) hoặc fan-in (tập trung) bất thường;
-3. Giao dịch tạo vòng lặp dòng tiền khép kín (circular transactions);
-4. Sử dụng mixer/tumbler để che dấu nguồn gốc tài sản;
-5. Chuyển đổi nhanh giữa nhiều loại tài sản mã hóa trong thời gian ngắn;
-6. Giao dịch có giá trị lớn từ ví mới tạo (dưới 30 ngày).
+3.5. Phương pháp chấm điểm
+- Điểm từng tiêu chí nguy cơ rửa tiền: thang 1 đến 5; điểm càng nhỏ thì nguy cơ càng thấp.
+- Điểm từng tiêu chí về mức độ phù hợp của chính sách/quy định nội bộ: thang 1 đến 5; điểm càng nhỏ thì mức độ phù hợp càng cao.
+- Trọng số từng tiêu chí là tỷ lệ phần trăm do đối tượng báo cáo xác định dựa trên tầm quan trọng của tiêu chí.
+- Trọng số được xác định dựa trên quy mô, phạm vi và đặc thù hoạt động.
+- Điểm số nguy cơ rửa tiền được tính từ tổng điểm từng tiêu chí nguy cơ sau khi nhân trọng số.
 
-===================================================================
+3.6. Phân loại điểm nguy cơ rửa tiền
+- <= 1: thấp.
+- > 1 đến <= 2: trung bình thấp.
+- > 2 đến <= 3: trung bình.
+- > 3 đến <= 4: trung bình cao.
+- > 4 đến <= 5: cao.
 
-CHƯƠNG IV. PHÂN LOẠI RỦI RO
+3.7. Điểm mức độ phù hợp của chính sách/quy định nội bộ
+- <= 1: cao.
+- > 1 đến <= 2: trung bình cao.
+- > 2 đến <= 3: trung bình.
+- > 3 đến <= 4: trung bình thấp.
+- > 4 đến <= 5: thấp.
 
-Điều 15. Mức độ rủi ro khách hàng
-1. Rủi ro THẤP: Khách hàng đã xác minh KYC đầy đủ, lịch sử giao dịch bình thường.
-2. Rủi ro TRUNG BÌNH: Khách hàng có giao dịch gần ngưỡng CTR, hoặc có 1 dấu hiệu cần lưu ý.
-3. Rủi ro CAO: Khách hàng nằm trong danh sách đen, giao dịch qua vùng lãnh thổ rủi ro cao,
-   hoặc có nhiều dấu hiệu đáng ngờ theo Điều 11 và Điều 12.
+3.8. Điểm rủi ro về rửa tiền
+Điểm rủi ro về rửa tiền được xác định bằng trung bình cộng:
+điểm nguy cơ rửa tiền + điểm mức độ phù hợp của chính sách/quy định nội bộ.
 
-Điều 16. Biện pháp xử lý theo mức độ rủi ro
-1. Rủi ro THẤP: Giám sát thường xuyên, cập nhật KYC định kỳ.
-2. Rủi ro TRUNG BÌNH: Tăng cường giám sát, báo cáo nội bộ.
-3. Rủi ro CAO: Đóng băng tài khoản tạm thời, lập STR ngay lập tức, báo cáo NHNN trong 24h.
+3.9. Kỳ đánh giá
+- Kỳ thu thập thông tin, số liệu: từ ngày 01/01 đến ngày 31/12 của năm đánh giá/cập nhật.
+- Đối tượng báo cáo phải hoàn thành báo cáo đánh giá/cập nhật rủi ro chậm nhất ngày 31/03 năm tiếp theo.
+- Kết quả đánh giá/cập nhật rủi ro được báo cáo theo mẫu tại Phụ lục I.
 
-===================================================================
+LEGAL_REFERENCE:
+Điều 3 Thông tư 27/2025/TT-NHNN.
 
-CHƯƠNG V. ÁP DỤNG CHO TÀI SẢN MÃ HÓA
+============================================================
+ĐIỀU 4. QUY TRÌNH QUẢN LÝ RỦI RO VÀ PHÂN LOẠI KHÁCH HÀNG
+============================================================
 
-Điều 20. Nghĩa vụ của tổ chức cung cấp dịch vụ tài sản mã hóa (VASP)
-1. VASP phải tuân thủ đầy đủ quy định KYC tương đương ngân hàng truyền thống.
-2. VASP phải triển khai hệ thống giám sát giao dịch tự động (transaction monitoring).
-3. VASP phải lưu trữ thông tin giao dịch tối thiểu 5 năm.
+4.1. Xây dựng quy trình
+Căn cứ kết quả đánh giá/cập nhật rủi ro theo Điều 3, đối tượng báo cáo xây dựng và ban hành quy trình quản lý rủi ro về rửa tiền.
 
-Điều 21. Travel Rule cho giao dịch tài sản mã hóa
-1. Giao dịch tài sản mã hóa có giá trị từ 1.000 USD trở lên phải kèm theo thông tin:
-   a) Tên người gửi, số CCCD, địa chỉ ví gửi;
-   b) Tên người nhận, địa chỉ ví nhận;
-   c) Giá trị và loại tài sản mã hóa.
+Quy trình phải được người quản lý cấp cao có thẩm quyền hoặc người được ủy quyền phê duyệt và thể hiện theo từng bước phù hợp với quy mô, phạm vi, đặc thù hoạt động.
 
-===================================================================
+4.2. Nội dung tối thiểu
+Bao gồm:
+- Xác định phạm vi và mục tiêu quản lý rủi ro.
+- Xác định, đánh giá mức độ ảnh hưởng của rủi ro.
+- Phân loại khách hàng theo mức độ rủi ro thấp, trung bình, cao.
+- Xem xét các yếu tố: khách hàng; sản phẩm/dịch vụ; vị trí địa lý nơi khách hàng cư trú hoặc đặt trụ sở; và yếu tố khác do đối tượng báo cáo tự xác định phù hợp thực tế.
+- Quy trình nhận diện/đánh giá rủi ro trước khi cung cấp sản phẩm, dịch vụ mới hoặc sản phẩm/dịch vụ hiện có áp dụng công nghệ đổi mới.
+- Quy trình xử lý các giao dịch chuyển tiền điện tử không chính xác, không đầy đủ thông tin, bao gồm thực hiện, từ chối, tạm dừng, kiểm soát sau giao dịch hoặc xem xét báo cáo giao dịch đáng ngờ.
+- Biện pháp tương ứng với mức rủi ro, gồm cập nhật/xác minh thông tin nhận biết khách hàng và mức độ giám sát giao dịch.
 
-Ghi chú: Đây là bản trích xuất tóm tắt dùng cho mục đích demo nghiên cứu.
-Văn bản đầy đủ tham khảo tại website NHNN: https://www.sbv.gov.vn
+4.3. Khách hàng rủi ro thấp
+Có thể lựa chọn áp dụng một hoặc tất cả biện pháp nhận biết khách hàng ở mức độ giảm nhẹ sau lần đầu thiết lập quan hệ, bao gồm:
+- Không thu thập thông tin về mục đích/bản chất quan hệ kinh doanh nếu mục đích/bản chất đã xác định được từ giao dịch hoặc quan hệ đã thiết lập.
+- Giảm tần suất cập nhật thông tin nhận biết.
+- Giảm mức độ giám sát giao dịch so với khách hàng rủi ro trung bình.
+
+LEGAL_REFERENCE:
+Điều 4 Thông tư 27/2025/TT-NHNN.
+
+============================================================
+ĐIỀU 5. QUY ĐỊNH NỘI BỘ VỀ PHÒNG, CHỐNG RỬA TIỀN
+============================================================
+Quy định nội bộ phải bao quát các nội dung theo Điều 5, bao gồm các nội dung về:
+- Chính sách quản lý rủi ro về rửa tiền.
+- Nhận biết khách hàng và cập nhật thông tin.
+- Giám sát liên tục mối quan hệ kinh doanh trên cơ sở rủi ro.
+- Lưu trữ, thời hạn lưu trữ và bảo mật thông tin.
+- Áp dụng biện pháp tạm thời theo quy định pháp luật.
+- Chế độ báo cáo/cung cấp thông tin cho Ngân hàng Nhà nước và cơ quan có thẩm quyền.
+- Tuyển dụng và đào tạo nhân sự liên quan.
+- Kiểm toán nội bộ hoặc kiểm soát tuân thủ theo trường hợp áp dụng.
+- Phân công trách nhiệm về công tác phòng, chống rửa tiền.
+
+Đáng chú ý, quy định về giám sát liên tục yêu cầu giám sát giao dịch phù hợp với mức độ rủi ro và bảo đảm giao dịch phù hợp với thông tin nhận biết khách hàng, hiểu biết về hoạt động kinh doanh, nguồn tiền hoặc nguồn tài sản của khách hàng; hồ sơ nhận biết khách hàng phải được rà soát, đánh giá và cập nhật thường xuyên, đặc biệt đối với nhóm khách hàng rủi ro cao.
+
+Đối tượng báo cáo có trách nhiệm hằng năm đào tạo/bồi dưỡng nghiệp vụ PCRT và rà soát, cập nhật quy định pháp luật, chính sách và quy trình quản lý rủi ro.
+
+LEGAL_REFERENCE:
+Điều 5 Thông tư 27/2025/TT-NHNN.
+
+============================================================
+ĐIỀU 6. CHẾ ĐỘ BÁO CÁO GIAO DỊCH CÓ GIÁ TRỊ LỚN PHẢI BÁO CÁO
+============================================================
+1. Đối tượng báo cáo có trách nhiệm báo cáo giao dịch có giá trị lớn phải báo cáo theo khoản 1 Điều 25 Luật Phòng, chống rửa tiền cho Cục Phòng, chống rửa tiền.
+2. Báo cáo thực hiện bằng dữ liệu điện tử theo Điều 10 hoặc bằng văn bản giấy theo Phụ lục II khi chưa kết nối được với hệ thống báo cáo bằng dữ liệu điện tử.
+3. Bao gồm cả giao dịch tiền mặt thực hiện qua máy nộp, rút tiền tự động hoặc máy giao dịch tự động.
+4. Trường hợp khách hàng nộp ngoại tệ tiền mặt có giá trị lớn để mua đồng Việt Nam hoặc nộp tiền mặt bằng đồng Việt Nam có giá trị lớn để mua ngoại tệ tiền mặt thì chỉ báo cáo giao dịch nộp tiền mặt.
+
+IMPORTANT:
+Điều 6 không tự quy định rằng "CTR = 400 triệu đồng cho crypto".
+Ngưỡng báo cáo giao dịch có giá trị lớn phải báo cáo được thực hiện theo Điều 25 Luật Phòng, chống rửa tiền và quy định liên quan.
+
+LEGAL_REFERENCE:
+Điều 6 Thông tư 27/2025/TT-NHNN.
+
+============================================================
+ĐIỀU 7. CHẾ ĐỘ BÁO CÁO GIAO DỊCH ĐÁNG NGỜ (STR)
+============================================================
+1. Đối tượng báo cáo có trách nhiệm báo cáo Cục Phòng, chống rửa tiền khi phát hiện giao dịch đáng ngờ liên quan đến:
+- Rửa tiền hoặc tội phạm khác liên quan đến rửa tiền.
+- Tài trợ khủng bố.
+- Tài trợ phổ biến vũ khí hủy diệt hàng loạt.
+
+2. Báo cáo thực hiện bằng dữ liệu điện tử theo Điều 10 hoặc bằng văn bản giấy theo mẫu tương ứng tại Phụ lục III khi chưa kết nối được với hệ thống báo cáo điện tử.
+
+3. Đối tượng báo cáo phải rà soát:
+- Dấu hiệu đáng ngờ theo Luật Phòng, chống rửa tiền.
+- Dấu hiệu theo pháp luật về phòng, chống khủng bố.
+- Dấu hiệu theo pháp luật về phòng, chống phổ biến vũ khí hủy diệt hàng loạt.
+- Các dấu hiệu khác do đối tượng báo cáo tự xác định trên cơ sở các nguồn thông tin, bao gồm thông tin do Cục Phòng, chống rửa tiền và cơ quan có thẩm quyền thông báo.
+
+4. Việc báo cáo STR không phụ thuộc vào lượng tiền giao dịch và không phụ thuộc việc giao dịch đã hoàn thành hay chưa.
+
+5. Khi không thể hoàn tất thủ tục nhận biết khách hàng và có nghi ngờ liên quan đến rửa tiền, tội phạm liên quan, tài trợ khủng bố hoặc tài trợ phổ biến vũ khí hủy diệt hàng loạt, đối tượng báo cáo xem xét thực hiện báo cáo STR.
+
+6. Cục Phòng, chống rửa tiền xác nhận đã nhận báo cáo STR trong thời hạn 05 ngày làm việc kể từ khi nhận đủ thông tin, hồ sơ, tài liệu theo quy định.
+
+IMPORTANT:
+Thông tư 27 không quy định trong Điều 7 rằng các dấu hiệu "fan-out", "fan-in", "mixer", "chain-hopping", "circular flow", "ví mới dưới 30 ngày", "giao dịch 23h-5h" là các dấu hiệu STR bắt buộc.
+Nếu hệ thống sử dụng các tín hiệu này, chúng phải được gắn với nguồn khác hoặc với logic phân tích nội bộ của hệ thống, không được giả mạo là nội dung của Thông tư 27.
+
+LEGAL_REFERENCE:
+Điều 7 Thông tư 27/2025/TT-NHNN.
+
+============================================================
+ĐIỀU 8. GIAO DỊCH CHUYỂN TIỀN ĐIỆN TỬ
+============================================================
+
+8.1. Các tổ chức tài chính tham gia
+Bao gồm:
+- Tổ chức tài chính khởi tạo.
+- Tổ chức tài chính trung gian.
+- Tổ chức tài chính thụ hưởng.
+
+8.2. Tổ chức tài chính khởi tạo trong nước
+Chỉ thực hiện giao dịch chuyển tiền điện tử khi lệnh chuyển tiền điện tử có đầy đủ, chính xác thông tin theo quy định của pháp luật về thanh toán không dùng tiền mặt và quản lý ngoại hối.
+
+8.3. Tổ chức tài chính trung gian trong nước
+Phải:
+- Có biện pháp xác định giao dịch chuyển tiền điện tử không đầy đủ/không chính xác thông tin.
+- Áp dụng biện pháp xử lý phù hợp: từ chối, tạm dừng, kiểm soát sau giao dịch hoặc xem xét báo cáo STR.
+
+8.4. Tổ chức tài chính thụ hưởng trong nước
+Phải:
+- Có biện pháp xác định giao dịch chuyển tiền điện tử không đầy đủ/không chính xác thông tin.
+- Áp dụng biện pháp xử lý phù hợp: từ chối, tạm dừng, kiểm soát sau giao dịch hoặc xem xét báo cáo STR.
+
+8.5. Duy trì thông tin
+Các tổ chức tài chính tham gia phải bảo đảm thông tin điện chuyển tiền được duy trì trong suốt quá trình giao dịch, bao gồm thông tin để xác định/phân biệt giao dịch chuyển tiền điện tử quốc tế và trong nước.
+
+8.6. Nhiều người khởi tạo/người thụ hưởng
+Đối với giao dịch có từ 02 người khởi tạo hoặc từ 02 người thụ hưởng trở lên:
+- Tổ chức tài chính khởi tạo/thụ hưởng phải duy trì đầy đủ thông tin khách hàng.
+- Tổ chức tài chính khởi tạo cung cấp đầy đủ thông tin người khởi tạo và người thụ hưởng cho tổ chức tài chính thụ hưởng và tổ chức trung gian khi được yêu cầu.
+
+IMPORTANT_TERMINOLOGY:
+"giao dịch chuyển tiền điện tử" trong Thông tư 27 là thuật ngữ pháp lý về electronic funds transfer/payment. Không được tự động đồng nhất với "crypto asset transaction" hoặc "blockchain transaction".
+
+LEGAL_REFERENCE:
+Điều 8 Thông tư 27/2025/TT-NHNN.
+
+============================================================
+ĐIỀU 9. CHẾ ĐỘ BÁO CÁO GIAO DỊCH CHUYỂN TIỀN ĐIỆN TỬ
+============================================================
+
+9.1. Giao dịch chuyển tiền điện tử trong nước
+Phải báo cáo khi tất cả tổ chức tài chính tham gia đều ở Việt Nam và giá trị giao dịch:
+>= 500.000.000 đồng
+hoặc ngoại tệ có giá trị tương đương.
+
+9.2. Giao dịch chuyển tiền điện tử quốc tế
+Phải báo cáo khi có ít nhất một tổ chức tài chính tham gia ở quốc gia/vùng lãnh thổ ngoài Việt Nam và giá trị giao dịch:
+>= 1.000 USD
+hoặc ngoại tệ khác có giá trị tương đương.
+
+9.3. Tổ chức tài chính trung gian
+Nếu đối tượng báo cáo là tổ chức tài chính trung gian trong giao dịch chuyển tiền điện tử thì không phải thực hiện báo cáo theo khoản 1 Điều 9.
+
+9.4. Nội dung báo cáo tối thiểu
+Bao gồm:
+- Thông tin tổ chức tài chính khởi tạo và thụ hưởng.
+- Thông tin khách hàng cá nhân tham gia giao dịch.
+- Thông tin khách hàng tổ chức tham gia giao dịch.
+- Thông tin giao dịch: số tài khoản nếu có, số tiền, loại tiền, số tiền quy đổi sang VND nếu là ngoại tệ, lý do/mục đích, ngày giao dịch, mã giao dịch hoặc số tham chiếu duy nhất.
+- Thông tin khác theo yêu cầu của Cục Phòng, chống rửa tiền.
+
+9.5. Một số thông tin không bắt buộc trong giao dịch quốc tế
+Thông tin về ngày sinh, giấy tờ nhận dạng, số thị thực và một số thông tin tổ chức được quy định tại khoản 4 Điều 9 không bắt buộc đối với:
+- Người thụ hưởng trong giao dịch chuyển tiền điện tử quốc tế từ Việt Nam ra nước ngoài.
+- Người khởi tạo trong giao dịch chuyển tiền điện tử quốc tế từ nước ngoài về Việt Nam.
+
+9.6. Giao dịch không phải báo cáo
+Bao gồm:
+- Giao dịch chuyển tiền bắt nguồn từ giao dịch sử dụng thẻ ghi nợ, thẻ tín dụng hoặc thẻ trả trước để thanh toán hàng hóa/dịch vụ.
+- Giao dịch chuyển tiền và thanh toán giữa các tổ chức tài chính khi người khởi tạo và người thụ hưởng đều là tổ chức tài chính thực hiện hoạt động nhân danh tổ chức mình.
+
+IMPORTANT:
+- 500 triệu đồng là ngưỡng báo cáo giao dịch chuyển tiền điện tử TRONG NƯỚC theo Điều 9.
+- 1.000 USD là ngưỡng báo cáo giao dịch chuyển tiền điện tử QUỐC TẾ theo Điều 9.
+- Hai ngưỡng này KHÔNG phải "ngưỡng Travel Rule crypto".
+- Không được chuyển đổi chúng thành quy tắc áp dụng cho blockchain/crypto nếu không có căn cứ pháp lý khác.
+
+LEGAL_REFERENCE:
+Điều 9 Thông tư 27/2025/TT-NHNN.
+
+============================================================
+ĐIỀU 10. HÌNH THỨC VÀ THỜI HẠN BÁO CÁO DỮ LIỆU ĐIỆN TỬ
+============================================================
+
+10.1. Hình thức
+- Báo cáo dữ liệu điện tử phải đúng định dạng dữ liệu và cấu trúc file qua đường truyền/mạng truyền tin theo hướng dẫn của Cục Phòng, chống rửa tiền.
+- Đối tượng báo cáo được phép thực hiện chuyển tiền điện tử phải xây dựng hệ thống CNTT phù hợp phục vụ báo cáo dữ liệu điện tử.
+- Hệ thống phải có phần mềm quét/lọc theo danh sách đen, danh sách cảnh báo, danh sách cá nhân có ảnh hưởng chính trị theo quy định pháp luật và giám sát giao dịch để phát hiện/cảnh báo dấu hiệu đáng ngờ phù hợp.
+
+10.2. Thời hạn
+Đối tượng báo cáo phải gửi:
+- Báo cáo giao dịch có giá trị lớn phải báo cáo.
+- Báo cáo giao dịch chuyển tiền điện tử.
+trước 16 giờ ngày làm việc tiếp theo ngay sau ngày phát sinh giao dịch.
+
+Nếu ngày gửi báo cáo trùng ngày nghỉ lễ, nghỉ Tết hoặc cuối tuần thì gửi vào ngày làm việc tiếp theo.
+
+10.3. Chỉnh sửa/bổ sung
+- Nếu phát hiện gửi thiếu báo cáo: thực hiện giải trình và gửi bổ sung trong 01 ngày làm việc sau khi có xác nhận của Cục Phòng, chống rửa tiền.
+- Nếu phát hiện sai sót trong dữ liệu đã gửi: giải trình, chỉnh sửa và gửi lại trong 01 ngày làm việc kể từ ngày phát hiện.
+- Nếu nhận thông báo về thiếu/sai sót từ Cục Phòng, chống rửa tiền: giải trình, bổ sung/chỉnh sửa chậm nhất 07 ngày làm việc từ ngày nhận thông báo.
+
+10.4. Đăng ký người phụ trách báo cáo
+Đối tượng báo cáo đăng ký với Cục Phòng, chống rửa tiền thông tin người phụ trách báo cáo bằng dữ liệu điện tử, gồm họ tên, chức vụ, địa chỉ nơi làm việc, số điện thoại và email; phải thông báo khi có thay đổi.
+
+LEGAL_REFERENCE:
+Điều 10 Thông tư 27/2025/TT-NHNN.
+
+============================================================
+PHỤ LỤC III — BÁO CÁO GIAO DỊCH ĐÁNG NGỜ
+============================================================
+Thông tư ban hành các mẫu báo cáo STR tại Phụ lục III, trong đó Mẫu số 01 áp dụng cho đối tượng báo cáo là tổ chức tín dụng, chi nhánh ngân hàng nước ngoài hoạt động tại Việt Nam.
+
+Mẫu STR bao gồm các nhóm thông tin như:
+- Thông tin đối tượng báo cáo.
+- Người chịu trách nhiệm về PCRT và người lập báo cáo.
+- Thông tin cá nhân/tổ chức thực hiện giao dịch đáng ngờ.
+- Thông tin giao dịch đáng ngờ.
+- Loại báo cáo và căn cứ/dấu hiệu đáng ngờ.
+- Công việc đã xử lý liên quan đến giao dịch đáng ngờ.
+- Tài liệu đính kèm.
+
+Tài liệu đính kèm có thể bao gồm:
+- Hồ sơ mở tài khoản và hồ sơ liên quan.
+- Bảng kê chi tiết các giao dịch.
+- Minh họa sơ đồ dòng tiền (bắt buộc trong trường hợp giao dịch đã được thực hiện).
+- Minh họa sơ đồ mối quan hệ giữa các cá nhân/tổ chức nếu có.
+- Kết quả phân tích, đánh giá cuối cùng của đối tượng báo cáo.
+- Chứng từ/tài liệu khác liên quan đến giao dịch đáng ngờ.
+
+LEGAL_REFERENCE:
+Phụ lục III Thông tư 27/2025/TT-NHNN.
+
+============================================================
+LEGAL-RAG BOUNDARY RULES
+============================================================
+
+RULE 1:
+Chỉ trả lời "Thông tư 27/2025/TT-NHNN quy định..." khi nội dung có căn cứ tại Thông tư 27.
+
+RULE 2:
+Không gọi "giao dịch chuyển tiền điện tử" là "giao dịch crypto/tài sản mã hóa" nếu không có nguồn pháp lý riêng chứng minh.
+
+RULE 3:
+Không gán các tín hiệu:
+- fan-out
+- fan-in
+- mixer/tumbler
+- chain-hopping
+- circular flow
+- ví mới dưới 30 ngày
+- giao dịch 23h-5h
+cho Điều 7 hoặc Điều 12 của Thông tư 27, vì Thông tư 27 không có cấu trúc Điều 12 về các crypto red flags như bản PoC cũ.
+
+RULE 4:
+Không tạo ngưỡng "400 triệu cho crypto" từ Thông tư 27.
+
+RULE 5:
+Nếu câu hỏi liên quan đến tài sản mã hóa/blockchain, Legal RAG phải có thể trả lời:
+"Thông tư 27/2025/TT-NHNN trong các điều khoản được truy xuất không thiết lập một bộ quy tắc riêng về fan-out/mixer/chain-hopping hay ngưỡng báo cáo crypto. Cần kiểm tra nguồn pháp luật khác hoặc nguồn FATF tương ứng."
+
+RULE 6:
+Các rule phát hiện do DigitalAsset Guard tự xây dựng phải được gắn source_type=SYSTEM_DERIVED, không gắn source_type=PRIMARY_LEGAL.
+
+RULE 7:
+FATF Recommendations là chuẩn mực quốc tế, không phải văn bản pháp luật Việt Nam. Khi trả lời, phải phân biệt rõ "theo FATF" và "theo Thông tư 27/2025/TT-NHNN".
+
+============================================================
+SOURCE
+============================================================
+Tên văn bản: Thông tư 27/2025/TT-NHNN
+Ngày ban hành: 15/09/2025
+Ngày hiệu lực: 01/11/2025
+Cơ quan ban hành: Ngân hàng Nhà nước Việt Nam
+Nguồn đối chiếu web: Thư Viện Pháp Luật
+URL:
+https://thuvienphapluat.vn/van-ban/Tien-te-Ngan-hang/Thong-tu-27-2025-TT-NHNN-huong-dan-thuc-hien-Luat-Phong-chong-rua-tien-673318.aspx

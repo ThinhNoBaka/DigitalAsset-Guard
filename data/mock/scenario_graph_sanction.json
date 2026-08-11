@@ -1,0 +1,56 @@
+{
+  "scenario": "graph_sanction",
+  "description": "Case demo: ví đích đang xét 0x28C6... nhận dòng tiền từ 1 ví trung gian, ví trung gian này nhận từ 1 ví bị gắn cờ đen (sanctioned). Graph Assistant chạy THẬT: PPR từ ví sanctioned → hop_distance=2 → suspicious_path=[sanctioned, intermediate, wallet_from] — decision do Decision Engine Rule 4 tự quyết, KHÔNG ép.",
+  "legs": [
+    {
+      "from": "0xSANCTIONED_DEMO_SOURCE",
+      "to": "0xINTERMEDIATE_DEMO_WALLET",
+      "amount_vnd": 210000000,
+      "timestamp": 1735200000
+    },
+    {
+      "from": "0xINTERMEDIATE_DEMO_WALLET",
+      "to": "0x28C6c06298d514Db089934071355E5743bf21d60",
+      "amount_vnd": 205000000,
+      "timestamp": 1735203600
+    },
+    {
+      "from": "0x28C6c06298d514Db089934071355E5743bf21d60",
+      "to": "0x000000000000000000000000000000000000dEaD",
+      "amount_vnd": 200000000,
+      "timestamp": 1735207200
+    }
+  ],
+  "graph_edges": [
+    [
+      "0xSANCTIONED_DEMO_SOURCE",
+      "0xINTERMEDIATE_DEMO_WALLET",
+      210000000
+    ],
+    [
+      "0xINTERMEDIATE_DEMO_WALLET",
+      "0x28C6c06298d514Db089934071355E5743bf21d60",
+      205000000
+    ],
+    [
+      "0x28C6c06298d514Db089934071355E5743bf21d60",
+      "0x000000000000000000000000000000000000dEaD",
+      200000000
+    ]
+  ],
+  "blacklisted_wallets": [
+    "0xSANCTIONED_DEMO_SOURCE"
+  ],
+  "evaluated_transaction": {
+    "tx_hash": "4376436de18c2528001f19befe3f1b23",
+    "wallet_from": "0x28C6c06298d514Db089934071355E5743bf21d60",
+    "wallet_to": "0x000000000000000000000000000000000000dEaD",
+    "amount_vnd": 200000000,
+    "fullname": "Nguyen Van A",
+    "id_number": "012345678901",
+    "account_number": "1000000001"
+  },
+  "expected": {
+    "graph_assistant": "GraphData edges cho wallet_from=0x28C6... → graph_data_available=true. PPR tính thật (personalization 0.7 cho SANCTIONED). hop_distance_to_blacklist=2 (SANCTIONED→INTERMEDIATE→0x28C6). suspicious_path=[0xSANCTIONED_DEMO_SOURCE, 0xINTERMEDIATE_DEMO_WALLET, 0x28C6c06298d514Db089934071355E5743bf21d60]. Decision Engine Rule 4 (hop<=2) → REPORT — là hệ quả của dữ liệu thật, KHÔNG fake."
+  }
+}

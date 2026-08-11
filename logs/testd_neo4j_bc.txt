@@ -1,0 +1,22 @@
+SEED_B=OK
+
+=== TEST B (graph có data, KHÔNG path tới ví sanction) — NEo4j/GDS THẬT ===
+status=GRAPH_AVAILABLE_NO_SANCTION_PATH
+graph_data_available=True
+sanction_path_found=False
+hop=None
+community_id=8
+fan_out=1
+graph_score=0.0
+suspicious_path=[]
+
+=== TEST C (ví KHÔNG tồn tại trong Neo4j) — NEo4j/GDS THẬT ===
+status=NO_GRAPH_DATA
+graph_data_available=False
+sanction_path_found=None
+hop=None
+community_id=0
+fan_out=0
+graph_score=0.0
+suspicious_path=[]
+TC_DONE

@@ -33,6 +33,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from core.graph_builder import PipelineRun
+from core.graph_provider import get_graph_provider
 from core.privacy_layer import assert_no_raw_pii
 from agents.kyc_verification import verify_kyc
 from agents.transaction_classifier import analyze_transaction
@@ -40,6 +41,18 @@ from agents.decision_engine import (
     _load_classifier_threshold,
     _CLASSIFIER_MEDIUM_RATIO,
 )
+
+# FIX 2026-08-08 — Transaction Assistant bắt buộc state["wallet_record"] đúng
+# schema ở production path (xem agents/transaction_classifier.py docstring).
+# Dùng chung module fetch với scripts/02_fetch_etherscan_sample.py để build
+# feature vector THẬT qua feature_builder, KHÔNG dùng mock.
+from scripts.etherscan_fetcher import fetch_wallet_record
+
+# [DEMO] Mock Core Banking — nguồn OFF-CHAIN, ĐỘC LẬP hoàn toàn với
+# wallet_record (ON-CHAIN, Etherscan, dòng import ngay trên). Chỉ phục vụ
+# agents/aggregation_monitor.py (structuring/smurfing). Xem
+# scripts/mock_core_banking.py để biết lý do KHÔNG hợp nhất 2 nguồn.
+from scripts.mock_core_banking import get_wallet_tx_history
 
 
 # =============================================================================
@@ -149,10 +162,31 @@ def _build_minimal_state(
     amount_vnd: float,
 ) -> dict:
 
+    # FIX 2026-08-08 — Transaction Assistant bắt buộc wallet_record ở production
+    # path (xem agents/transaction_classifier.py). Giống /api/pipeline/run,
+    # fetch on-chain data của ví để chấm điểm THẬT qua feature_builder.
+    try:
+        wallet_record = fetch_wallet_record(
+            wallet_address,
+            max_records=100,
+            page_size=100,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Không thể fetch dữ liệu on-chain của wallet_address "
+                f"({wallet_address}): {exc}."
+            ),
+        )
+
     state = {
         "wallet_from": wallet_address,
         "wallet_to": "",
         "amount_vnd": amount_vnd,
+
+        # On-chain data — KHÔNG PII, cần cho Transaction Assistant.
+        "wallet_record": wallet_record,
     }
 
     assert_no_raw_pii(state)
@@ -345,6 +379,11 @@ class RawTransactionRequest(BaseModel):
     id_number: str
     account_number: str
 
+    # [DEMO ONLY — Phase 2 Graph Provider] Chọn scenario mock tường minh.
+    # Production KHÔNG gửi field này (Neo4jGraphProvider bỏ qua hoàn toàn).
+    # Khi None: MockGraphProvider tự khớp deterministic theo wallet_from.
+    scenario: Optional[str] = None
+
 
 class PipelineRunResponse(BaseModel):
     tx_hash: Optional[str]
@@ -367,6 +406,47 @@ def _build_initial_state(
 
     tx_hash = payload.tx_hash or secrets.token_hex(16)
 
+    # -----------------------------------------------------------------
+    # FIX 2026-08-08 — On-chain data của wallet_from (KHÔNG PII — dữ liệu
+    # public, hợp lệ để tồn tại trong state sau Privacy Layer).
+    # Transaction Assistant (production path) bắt buộc có wallet_record
+    # đúng schema {"address", "chains": {"ethereum": [txlist]},
+    # "token_transfers": {"ethereum": [tokentx]}} để build feature vector
+    # THẬT qua feature_builder, KHÔNG được dùng mock. Fetch động mỗi
+    # request để production path chạy đúng (demo/test mới được phép
+    # allow_mock=True tường minh — xem scripts/demo_runner.py).
+    # -----------------------------------------------------------------
+    try:
+        wallet_record = fetch_wallet_record(
+            payload.wallet_from,
+            max_records=100,
+            page_size=100,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Không thể fetch dữ liệu on-chain của wallet_from "
+                f"({payload.wallet_from}): {exc}. "
+                "Kích hoạt webhook / Chạy pipeline yêu cầu dữ liệu Etherscan."
+            ),
+        )
+
+    # -----------------------------------------------------------------
+    # [DEMO] Mock Core Banking — nguồn OFF-CHAIN, ĐỘC LẬP với wallet_record
+    # (ON-CHAIN) ở trên. Tra theo account_number RAW (dòng này chạy TRƯỚC
+    # Privacy Layer, account_number chưa bị băm). Đây KHÔNG phải mapping
+    # wallet<->customer — chỉ là tra cứu lịch sử ngân hàng của account_number
+    # thuộc case đang xét, phục vụ agents/aggregation_monitor.py. Xem
+    # scripts/mock_core_banking.py.
+    #
+    # Nếu account_number không khớp record demo nào -> get_wallet_tx_history
+    # trả None -> KHÔNG set "wallet_tx_history" -> Aggregation Monitor giữ
+    # nguyên hành vi mặc định hiện tại (aggregation_status="not_assessed",
+    # xem agents/aggregation_monitor.py) -- không đổi gì so với trước.
+    # -----------------------------------------------------------------
+    wallet_tx_history = get_wallet_tx_history(payload.account_number)
+
     state: Dict[str, Any] = {
         "tx_hash": tx_hash,
 
@@ -382,6 +462,15 @@ def _build_initial_state(
         # -----------------------------------------------------------------
         # SPEC_v2 fields
         # -----------------------------------------------------------------
+
+        # On-chain data của wallet_from — bắt buộc cho Transaction Assistant
+        # (xem agents/transaction_classifier.py FIX 2026-08-08). KHÔNG PII.
+        "wallet_record": wallet_record,
+
+        # Transaction Assistant sẽ set lại sau khi đếm DỮ LIỆU THÔ trên
+        # wallet_record (xem agents/transaction_classifier.py FIX 2026-08-08).
+        # Mặc định False = xem như đủ dữ liệu cho tới khi agent xác nhận ngược lại.
+        "insufficient_data": False,
 
         "classifier_score": None,
         "graph_score": None,
@@ -429,6 +518,43 @@ def _build_initial_state(
         "thought": None,
         "report_path": None,
     }
+
+    # Chỉ set khi có case demo khớp account_number. KHÔNG set key này khi
+    # wallet_tx_history is None -- agents/aggregation_monitor.py phân biệt
+    # "key không tồn tại/None" (not_assessed) với "key tồn tại nhưng rỗng".
+    # Giữ đúng convention .get("wallet_tx_history") hiện có trong
+    # aggregation_monitor.py và transaction_classifier.py.
+    if wallet_tx_history:
+        state["wallet_tx_history"] = wallet_tx_history
+
+    # -----------------------------------------------------------------
+    # [Phase 2 — Graph Data Provider] Nạp graph data vào state theo DATA SOURCE.
+    #
+    # BUG ĐÃ SỬA: trước đây _build_initial_state KHÔNG nạp mock_graph_edges /
+    # mock_blacklisted_wallets → Graph Agent qua UI/API luôn nhận None → rơi
+    # vào fallback "no graph data" (PPR=0.0, hop=None, suspicious_path=[]) dù
+    # demo đang chạy. Từ nay graph data được lấy từ provider theo config:
+    #
+    #     GRAPH_SOURCE=mock  → MockGraphProvider: đọc scenario JSON theo
+    #                          wallet_from (deterministic) hoặc payload.scenario
+    #     GRAPH_SOURCE=neo4j → Neo4jGraphProvider: trả None, KHÔNG thêm gì —
+    #                          graph_aml query Neo4j/GDS gốc
+    #
+    # KHÔNG PII (chỉ địa chỉ ví công khai + số tiền), hợp lệ để tồn tại trong
+    # state TRƯỚC Privacy Layer (core/privacy_layer.py giữ nguyên key non-PII).
+    # -----------------------------------------------------------------
+    graph_provider = get_graph_provider()
+    graph_data = graph_provider.get_graph_data(
+        wallet_from=payload.wallet_from,
+        wallet_to=payload.wallet_to,
+        scenario=getattr(payload, "scenario", None),
+    )
+    if graph_data is not None and not graph_data.is_empty():
+        # Mock: nạp edges + blacklisted theo đúng contract agents/graph_aml.py
+        # đọc (khớp state.py::mock_graph_edges / mock_blacklisted_wallets).
+        state["mock_graph_edges"] = graph_data.edges
+        state["mock_blacklisted_wallets"] = graph_data.blacklisted_wallets
+        state["graph_scenario_id"] = graph_data.scenario_id
 
     return state
 
@@ -720,6 +846,16 @@ Dữ liệu hệ thống đã tính toán cho giao dịch:
     indent=2,
     default=str,
 )}
+
+Ý nghĩa các field trong JSON trên:
+- classifier_score: điểm phân loại ML (transaction classifier).
+- graph_score: còn được gọi là PPR (Personalized PageRank) — mức độ liên quan của ví này tới các ví seed/rủi ro theo thuật toán Personalized PageRank. Đây KHÔNG phải điểm risk tổng hợp duy nhất.
+- hop_distance_to_blacklist: số hop giao dịch từ ví này tới ví nằm trong danh sách trừng phạt (OFAC/UN/NHNN).
+- suspicious_path: đường đi dòng tiền đáng ngờ từ ví bị trừng phạt tới ví này.
+- community_id: mã cộng đồng Louvain mà ví thuộc về.
+- fan_out: số ví khác nhận tiền trực tiếp từ ví này.
+- decision: quyết định REPORT/REVIEW là kết quả rule-based composite (từng tín hiệu xét độc lập: sanctions/structuring/classifier(θ)/graph hop), KHÔNG phải 1 điểm risk tổng hợp duy nhất.
+- decision_evidence: danh sách các rule cụ thể đã kích hoạt — dùng làm căn cứ để giải thích quyết định.
 
 Câu hỏi của chuyên viên:
 "{payload.question}"

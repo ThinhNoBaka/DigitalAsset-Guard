@@ -1,0 +1,49 @@
+dataset_column,production_feature,status,reason
+Index,,DROP,"Số thứ tự dòng trong file gốc, không phải feature ví, không reproducible."
+Avg_min_between_sent_tnx,Avg min between sent tnx,KEEP,Tính trực tiếp từ timestamp các giao dịch sent trong txlist.
+Avg_min_between_received_tnx,Avg min between received tnx,KEEP,Tính trực tiếp từ timestamp các giao dịch received trong txlist.
+Time_Diff_between_first_and_last_(Mins),Time Diff between first and last (Mins),KEEP,Tính từ timestamp giao dịch đầu/cuối trong txlist.
+Sent_tnx,Sent tnx,KEEP,Đếm trực tiếp số giao dịch sent trong txlist.
+Received_Tnx,Received Tnx,KEEP,Đếm trực tiếp số giao dịch received trong txlist.
+Number_of_Created_Contracts,Number of Created Contracts,KEEP,Đếm giao dịch sent có contractAddress khác rỗng trong txlist.
+Unique_Received_From_Addresses,Unique Received From Addresses,KEEP,Đếm địa chỉ 'from' duy nhất trong các giao dịch received.
+Unique_Sent_To_Addresses,Unique Sent To Addresses,KEEP,Đếm địa chỉ 'to' duy nhất trong các giao dịch sent.
+min_value_received,min value received,KEEP,"min() giá trị Ether nhận, quy đổi từ wei."
+max_value_received,max value received,KEEP,"max() giá trị Ether nhận, quy đổi từ wei."
+avg_val_received,avg val received,KEEP,"mean() giá trị Ether nhận, quy đổi từ wei."
+min_val_sent,min val sent,KEEP,"min() giá trị Ether gửi, quy đổi từ wei."
+max_val_sent,max val sent,KEEP,"max() giá trị Ether gửi, quy đổi từ wei."
+avg_val_sent,avg val sent,KEEP,"mean() giá trị Ether gửi, quy đổi từ wei."
+min_value_sent_to_contract,min value sent to contract,KEEP_CAVEAT,Production suy luận 'to contract' bằng heuristic input != '0x' (xem giới hạn (1) trong feature_builder.py) -- không chính xác 100%.
+max_val_sent_to_contract,max val sent to contract,KEEP_CAVEAT,Cùng heuristic 'to contract' như trên -- xem giới hạn (1) feature_builder.py.
+avg_value_sent_to_contract,avg value sent to contract,KEEP_CAVEAT,Cùng heuristic 'to contract' như trên -- xem giới hạn (1) feature_builder.py.
+total_transactions_(including_tnx_to_create_contract),total transactions (including tnx to create contract),KEEP,len(txs) thành công (isError == '0') trong txlist.
+total_Ether_sent,total Ether sent,KEEP,sum() giá trị Ether gửi.
+total_ether_received,total ether received,KEEP,sum() giá trị Ether nhận.
+total_ether_sent_contracts,total ether sent contracts,KEEP_CAVEAT,Cùng heuristic 'to contract' như trên -- xem giới hạn (1) feature_builder.py.
+total_ether_balance,"total ether balance (APPROX, no internal tx)",KEEP_CAVEAT,"Production KHÔNG tính internal transactions (xem giới hạn (2) feature_builder.py) -- với ví luân chuyển tiền qua contract, số này có thể lệch đáng kể so với balance thật."
+Total_ERC20_tnxs,Total ERC20 tnxs,KEEP,len(token_transfers) từ tokentx.
+ERC20_total_Ether_received,ERC20 total Ether received,KEEP_CAVEAT,"Production cộng gộp số lượng token đã quy đổi decimal của MỌI loại token khác nhau vào chung 1 con số, không quy đổi USD (xem giới hạn (3) feature_builder.py) -- giữ để khớp semantics dataset gốc."
+ERC20_total_ether_sent,ERC20 total ether sent,KEEP_CAVEAT,Cùng giới hạn cộng gộp token như trên -- xem giới hạn (3) feature_builder.py.
+ERC20_total_Ether_sent_contract,,DROP,Production không tính được: endpoint tokentx không có field 'input' để suy luận 'to' có phải contract hay không (giới hạn (4) feature_builder.py).
+ERC20_uniq_sent_addr,ERC20 uniq sent addr,KEEP,Đếm địa chỉ 'to' duy nhất trong các ERC20 transfer gửi đi.
+ERC20_uniq_rec_addr,ERC20 uniq rec addr,KEEP,Đếm địa chỉ 'from' duy nhất trong các ERC20 transfer nhận về.
+ERC20_uniq_sent_addr.1,,DROP,"Cột trùng tên với 'ERC20_uniq_sent_addr' trong file gốc (bug dữ liệu nguồn, pandas tự đổi tên thành '.1' khi đọc). Giá trị chỉ gồm {0,1}, không khớp ý nghĩa 'unique address count' và không có key production tương ứng nào tái tạo được nó -- không đủ tin cậy để giữ."
+ERC20_uniq_rec_contract_addr,,DROP,"Không có key tương ứng trong build_erc20_features(); trong dữ liệu thực cột này trùng giá trị hệt ERC20_uniq_rec_token_name -- nhiều khả năng là cột bị gán nhãn sai ở nguồn, không tái tạo được ở production."
+ERC20_avg_time_between_sent_tnx,ERC20 avg time between sent tnx,KEEP,Tính từ timestamp các ERC20 transfer gửi đi.
+ERC20_avg_time_between_rec_tnx,ERC20 avg time between rec tnx,KEEP,Tính từ timestamp các ERC20 transfer nhận về.
+ERC20_avg_time_between_rec_2_tnx,,DROP,"Không có key tương ứng trong build_erc20_features(); production chỉ tính 1 phiên bản 'avg time between rec tnx', không phân biệt '2nd'."
+ERC20_avg_time_between_contract_tnx,,DROP,"Không có key tương ứng -- phụ thuộc phân loại 'contract' cho ERC20 transfer, thứ mà production không tính được (giới hạn (4))."
+ERC20_min_val_rec,ERC20 min val rec,KEEP_CAVEAT,Xem giới hạn (3) feature_builder.py.
+ERC20_max_val_rec,ERC20 max val rec,KEEP_CAVEAT,Xem giới hạn (3) feature_builder.py.
+ERC20_avg_val_rec,ERC20 avg val rec,KEEP_CAVEAT,Xem giới hạn (3) feature_builder.py.
+ERC20_min_val_sent,ERC20 min val sent,KEEP_CAVEAT,Xem giới hạn (3) feature_builder.py.
+ERC20_max_val_sent,ERC20 max val sent,KEEP_CAVEAT,Xem giới hạn (3) feature_builder.py.
+ERC20_avg_val_sent,ERC20 avg val sent,KEEP_CAVEAT,Xem giới hạn (3) feature_builder.py.
+ERC20_min_val_sent_contract,,DROP,Phụ thuộc phân loại 'to contract' cho ERC20 transfer -- không tính được (giới hạn (4) feature_builder.py).
+ERC20_max_val_sent_contract,,DROP,Phụ thuộc phân loại 'to contract' cho ERC20 transfer -- không tính được (giới hạn (4) feature_builder.py).
+ERC20_avg_val_sent_contract,,DROP,Phụ thuộc phân loại 'to contract' cho ERC20 transfer -- không tính được (giới hạn (4) feature_builder.py).
+ERC20_uniq_sent_token_name,ERC20 uniq sent token name,KEEP,"Đây là SỐ LƯỢNG loại token khác nhau đã gửi (len(set(tokenName))), là số nguyên -- production tính được, khác với ERC20_most_sent_token_type (categorical)."
+ERC20_uniq_rec_token_name,ERC20 uniq rec token name,KEEP,Số lượng loại token khác nhau đã nhận (len(set(tokenName))).
+ERC20_most_sent_token_type,,DROP,"Dữ liệu categorical (tên token phổ biến nhất) -- production cố ý không đưa vào feature dict dạng số (giới hạn (5) feature_builder.py); cần bước encode riêng nếu muốn dùng, không thuộc phạm vi script này."
+ERC20_most_rec_token_type,,DROP,"Cùng lý do như ERC20_most_sent_token_type -- categorical, cố ý loại khỏi feature dict production (giới hạn (5) feature_builder.py)."

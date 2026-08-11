@@ -8,7 +8,7 @@ Trả về graph_score (PPR), community_id, suspicious_path, metadata current_wa
 import os
 import networkx as nx
 from networkx.algorithms.community import louvain_communities
-from core.config import DEMO_MODE
+from core.config import resolve_graph_source
 from core.privacy_layer import assert_no_raw_pii
 from core.state import AMLState
 import logging
@@ -55,7 +55,9 @@ def _analyze_via_networkx(
         # cũng trả "không có dữ liệu" thay vì tự vẽ đồ thị giả. Quyết định
         # thiết kế mock/demo graph thay thế sẽ làm riêng sau, tách khỏi logic
         # tính hop_distance thật.
-        return 0.0, None, [], None, 0, [], False
+        # Thống nhất no-data return với nhánh Neo4j (xem _analyze_via_neo4j khi
+        # wallet không tồn tại): community_id=0, target_community_nodes=[wallet_from].
+        return 0.0, 0, [wallet_from], None, 0, [], False
 
     G = nx.DiGraph()
     for u, v, amount in mock_edges:
@@ -157,7 +159,8 @@ def _analyze_via_neo4j(
             ).single()["c"]
             if exists == 0:
                 # Không có dữ liệu -> trả về mặc định
-                return 0.0, 0, [wallet_from], None, 0, [], False
+                # Giá trị cuối = graph_data_available=False (NO_GRAPH_DATA)
+                return 0.0, 0, [wallet_from], None, 0, [], False, False
 
             # Xóa projection cũ
             session.run(
@@ -262,7 +265,7 @@ def _analyze_via_neo4j(
                 if res:
                     current_wallet_is_sanctioned = res["s"] or False
 
-            return graph_score, wf_community_id, wf_community_nodes, hop_distance, fan_out, suspicious_path, current_wallet_is_sanctioned
+            return graph_score, wf_community_id, wf_community_nodes, hop_distance, fan_out, suspicious_path, current_wallet_is_sanctioned, True
 
     except Exception as e:
         print(f"⚠️ Lỗi Graph Assistant (Neo4j/GDS): {e}")
@@ -280,15 +283,24 @@ def analyze_graph(state: AMLState) -> AMLState:
     mock_edges = state.get("mock_graph_edges")
     mock_blacklisted = state.get("mock_blacklisted_wallets")
 
-    if DEMO_MODE:
+    # Engine chọn theo DATA SOURCE (xem core/config.py::resolve_graph_source):
+    #   "mock"  = MockGraphProvider → NetworkX trên graph data từ state
+    #             (mock_graph_edges / mock_blacklisted_wallets — do provider
+    #             nạp qua api/main.py::_build_initial_state hoặc demo_runner)
+    #   "neo4j" = Neo4jGraphProvider → query Neo4j/GDS thật
+    # Graph Agent KHÔNG còn quan tâm DEMO_MODE — chỉ biết DATA SOURCE.
+    graph_source = resolve_graph_source()
+
+    if graph_source == "mock":
         graph_score, comm_id, comm_nodes, hop_distance, fan_out, suspicious_path, current_sanctioned = _analyze_via_networkx(
             wallet_from, wallet_to,
             mock_edges=mock_edges,
             mock_blacklisted_wallets=mock_blacklisted,
         )
         engine = "NetworkX"
+        graph_data_available = bool(mock_edges)
     else:
-        graph_score, comm_id, comm_nodes, hop_distance, fan_out, suspicious_path, current_sanctioned = _analyze_via_neo4j(
+        graph_score, comm_id, comm_nodes, hop_distance, fan_out, suspicious_path, current_sanctioned, graph_data_available = _analyze_via_neo4j(
             wallet_from, wallet_to,
             mock_edges=mock_edges,
             mock_blacklisted_wallets=mock_blacklisted,
@@ -301,6 +313,24 @@ def analyze_graph(state: AMLState) -> AMLState:
     state["fan_out"] = fan_out
     state["suspicious_path"] = suspicious_path
     state["current_wallet_is_sanctioned"] = current_sanctioned
+
+    # -------------------------------------------------------------------------
+    # SEMANTICS 3 TRẠNG THÁI — frontend/report dùng fields này làm tín hiệu
+    # CHÍNH, KHÔNG suy luận từ graph_score=0 / hop=None / fan_out=0 / community=0
+    # (các số đó có thể là kết quả thuật toán HỢP LỆ khi graph có dữ liệu).
+    # -------------------------------------------------------------------------
+    if not graph_data_available:
+        state["graph_analysis_status"] = "NO_GRAPH_DATA"
+        state["graph_data_available"] = False
+        state["sanction_path_found"] = None
+    else:
+        state["graph_data_available"] = True
+        if hop_distance is not None:
+            state["graph_analysis_status"] = "GRAPH_AVAILABLE_SANCTION_PATH_FOUND"
+            state["sanction_path_found"] = True
+        else:
+            state["graph_analysis_status"] = "GRAPH_AVAILABLE_NO_SANCTION_PATH"
+            state["sanction_path_found"] = False
 
     state["thought"] = (
         f"GraphAgent chạy trên {engine}. "

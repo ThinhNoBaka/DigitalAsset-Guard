@@ -3,17 +3,17 @@
 Test Decision Engine theo SPEC_v2 (rule-based composite — KHÔNG còn weighted-sum).
 
 Kiến trúc mới (xem agents/decision_engine.py):
-- 5 rule tuần tự: sanctions match → structuring_flag → classifier_score >= θ
+- 5 rule tuần tự: sanctions match → structuring_detected → classifier_score >= θ
   (đọc từ models/classifier_threshold.json, calibrate trên Elliptic) →
   hop_distance_to_blacklist <= 2 → 2 tín hiệu "medium" cùng lúc → REVIEW.
 - risk_assessment_score luôn = None (không còn tính điểm tổng hợp).
 
-LƯU Ý VỀ NGƯỠNG θ: tests dùng threshold THẬT từ models/classifier_threshold.json
-(đã chạy calibrate trên Elliptic — hiện θ=0.0009, rất thấp vì model chưa phân
-biệt mạnh illicit/licit). Vì vậy mọi classifier_score > 0 đều có thể trigger
-REPORT — test dùng classifier_score=0.0 cho các case PASS/REVIEW để kiểm tra
-đúng rule khác (sanctions, structuring, graph hop, 2 medium signals) mà không
-bị Rule 3 chặn trước.
+LƯU Ý VỀ NGƯỠNG θ: tests dùng threshold THẬT từ models/classifier_threshold.json.
+Sau khi chuyển sang dataset Ethereum Fraud Detection (2026-08-08), θ được
+calibrate lại trên data/processed/ethereum_fraud_test.csv — hiện θ=0.8748
+(model phân biệt rất tốt illicit/licit: AUC-PR 0.9955). Vì vậy các test
+PASS/REVIEW phải dùng classifier_score < θ, và test REPORT phải dùng
+classifier_score >= θ, để đi đúng rule cần kiểm tra.
 """
 
 import pytest
@@ -45,9 +45,9 @@ def test_decision_pass_low_risk_no_sanctions():
 
 
 def test_decision_report_classifier_above_threshold():
-    # classifier_score >= θ (θ calibrate trên Elliptic) -> REPORT độc lập với sanctions.
+    # classifier_score >= θ (θ calibrate trên corpus hiện tại = 0.8748) -> REPORT độc lập với sanctions.
     state = AMLState(
-        classifier_score=0.01,
+        classifier_score=0.9,  # >= θ=0.8748 (theta đọc từ models/classifier_threshold.json)
         graph_score=0.0,
         sanction_result={"is_match": False},
         name_similarity_warning=False,
@@ -96,7 +96,7 @@ def test_decision_review_two_medium_signals():
     # Rule 5: classifier medium (θ*0.6 <= score < θ) + graph medium (2 < hop <= 4)
     # cùng lúc -> REVIEW. Ngưỡng medium là giả định tạm (xem docstring decision_engine).
     state = AMLState(
-        classifier_score=0.0007,  # medium: θ*0.6=0.00054 <= 0.0007 < θ=0.0009
+        classifier_score=0.6,  # medium: θ*0.6=0.52488 <= 0.6 < θ=0.8748
         graph_score=0.0,
         hop_distance_to_blacklist=3,  # medium: 2 < 3 <= 4
         sanction_result={"is_match": False},

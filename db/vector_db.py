@@ -9,7 +9,17 @@ from chromadb.utils import embedding_functions
 
 LEGAL_DOCS_DIR = "data/legal_docs"
 CHROMA_DB_DIR = "db/chroma_db"
-REQUIRED_FILES = ["thong_tu_27_2025.txt", "thong_tu_32_2026.txt"]
+# [2026-08-09] Chủ đích bỏ Thông tư 32/2026/TT-BTC (tính năng thuế tài sản mã hóa).
+# Bổ sung fatf_recommendations.txt để ingest nguồn chuẩn mực quốc tế FATF.
+# [2026-08-09] Bổ sung luat_pcrt_2022_qd11_2023.txt — văn bản GỐC (Luật PCRT 2022
+# + Quyết định 11/2023/QĐ-TTg) chứa NGƯỠNG SỐ 400.000.000 đồng cho giao dịch giá
+# trị lớn (Điều 25 Luật PCRT). Thông tư 27/2025/TT-NHNN chỉ dẫn chiếu, không tự
+# nêu con số — LLM không thể khẳng định "400 triệu" nếu nguồn này không được ingest.
+REQUIRED_FILES = [
+    "thong_tu_27_2025.txt",
+    "fatf_recommendations.txt",
+    "luat_pcrt_2022_qd11_2023.txt",
+]
 
 
 def init_and_load_vector_db():

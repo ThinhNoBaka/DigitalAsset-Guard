@@ -40,9 +40,14 @@ chroma/
 db/chroma_db/
 
 # ===== Raw Data (quá lớn) =====
-data/raw/elliptic/*.csv
-data/raw/ofac/sdn.xml
-data/raw/etherscan/*.json
+data/raw/**/*.csv
+data/raw/**/*.xml
+data/raw/**/*.json
+data/raw/**/*.txt
+data/raw/*.csv
+data/raw/*.xml
+data/raw/*.json
+data/raw/*.txt
 
 # ===== Reports Output =====
 reports/output/*.docx

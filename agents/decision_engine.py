@@ -32,8 +32,10 @@ Lý do mỗi rule dùng được ngay (không cần dữ liệu ghép cặp khô
       licit để "học" — N=2 chọn bằng quyết định nghiệp vụ (cân bằng recall/
       false positive), giống cách luật chọn ngưỡng 500tr, không phải số
       thống kê giả tạo.
-    - structuring_flag, sanctions match : đã là rule cứng từ trước, không
-      đổi.
+    - structuring_detected, sanctions match : đã là rule cứng từ trước,
+      không đổi. structuring_detected xử lý 3 trạng thái True/False/None —
+      None (không có dữ liệu off-chain Core Banking) KHÔNG được coi như False
+      (False ngầm hiểu "đã kiểm tra, không phát hiện", sai thực tế).
 
 *** NGƯỠNG "MEDIUM" CHO RULE REVIEW (2 tín hiệu vừa) — GIẢ ĐỊNH TẠM ***
 _CLASSIFIER_MEDIUM_RATIO = 0.6 (tức là medium = θ * 0.6) là số CHỌN TẠM,
@@ -136,10 +138,46 @@ def make_decision(state: AMLState) -> AMLState:
     classifier_threshold = _load_classifier_threshold()
     classifier_medium_threshold = classifier_threshold * _CLASSIFIER_MEDIUM_RATIO
 
+    # --- Aggregation Monitor / structuring ---
+    # structuring_detected có 3 trạng thái:
+    #   True  : đã chạy rule structuring với dữ liệu off-chain → phát hiện.
+    #   False : đã chạy rule structuring với dữ liệu off-chain → sạch.
+    #   None  : CHƯA đánh giá (không có wallet_tx_history — thiếu dữ liệu
+    #           off-chain Core Banking). KHÔNG coi None như False.
+    # aggregation_status phân biệt rõ "đã kiểm tra sạch" vs "chưa đánh giá được".
+    structuring_detected = state.get("structuring_detected")
+    aggregation_status = state.get("aggregation_status")
+
     # `risk_assessment_score` không còn được tính (đã bỏ weighted-sum). Giữ
     # key = None trong state để code cũ (UI, report) đọc field này không
     # crash, nhưng KHÔNG dùng làm căn cứ quyết định.
     state["risk_assessment_score"] = None
+
+    # -------------------------------------------------------------------------
+    # [FIX 2026-08-08 — AUDIT ZERO-TX WALLET] Điều kiện kiểm tra ĐẦU TIÊN
+    # -------------------------------------------------------------------------
+    # Ví chưa từng có giao dịch on-chain (insufficient_data=True, do Transaction
+    # Assistant ghi từ DỮ LIỆU THÔ — 0 tx txlist + 0 tx tokentx) thì KHÔNG được
+    # dùng classifier_score để tự động REPORT/PASS: model chấm ~1.0 cho feature
+    # vector toàn 0 là đặc thù tập train Farrugia (ví illicit thường có ít hoạt
+    # động), KHÔNG phản ánh rủi ro thật của ví. BẮT BUỘC route REVIEW cho chuyên
+    # viên xác minh thủ công. Đặt TRƯỚC mọi rule dựa trên classifier_score /
+    # graph_score bên dưới — không REPORT, không PASS tự động.
+    if state.get("insufficient_data", False):
+        state["decision"] = "REVIEW"
+        state["case_status"] = "pending_review"
+        state["decision_reason"] = (
+            "Không đủ dữ liệu giao dịch on-chain để đánh giá rủi ro (ví chưa có "
+            "lịch sử Etherscan) — cần chuyên viên xác minh thủ công, KHÔNG dựa "
+            "vào classifier_score."
+        )
+        state["decision_evidence"] = [
+            "THIẾU DỮ LIỆU: ví chưa từng gửi/nhận ETH lẫn ERC20 trên Etherscan "
+            "(0 tx txlist + 0 tx tokentx) — classifier_score KHÔNG được dùng làm "
+            "căn cứ quyết định (model chấm ~1.0 cho vector toàn 0 là đặc thù tập "
+            "train, không phản ánh rủi ro thật). Cần chuyên viên xác minh thủ công."
+        ]
+        return state
 
     evidence = []
     decision = "PASS"
@@ -166,7 +204,12 @@ def make_decision(state: AMLState) -> AMLState:
         reason = "Sanctions exact match triggers mandatory reporting."
 
     # --- Rule 2: Structuring / smurfing (Aggregation Monitor) ---
-    elif state.get("structuring_flag", False):
+    # Chỉ trigger khi structuring_detected là True (đã được Aggregation Monitor
+    # đánh giá với dữ liệu off-chain thật). None (chưa đánh giá — thiếu dữ
+    # liệu) KHÔNG được coi là False: rơi qua các rule khác bình thường, và
+    # evidence bổ sung ở cuối sẽ ghi rõ structuring chưa được đánh giá cho
+    # case này.
+    elif structuring_detected is True:
         decision = "REPORT"
         case_status = "pending_review"
         evidence.append(
@@ -229,6 +272,18 @@ def make_decision(state: AMLState) -> AMLState:
     if state.get("name_similarity_warning", False):
         evidence.append(
             f"Fuzzy name similarity warning (score: {state.get('name_similarity_score', 0.0):.2f}%) - for information only"
+        )
+
+    # Structuring CHƯA được đánh giá (không có dữ liệu off-chain Core Banking).
+    # KHÔNG đồng nghĩa "đã kiểm tra sạch" — phải ghi rõ trong evidence để
+    # chuyên viên biết rule structuring chưa hề chạy cho case này.
+    # (KHÔNG dùng cụm "THIẾU DỮ LIỆU" — cụm này dành riêng cho insufficient_data
+    # on-chain trong AUDIT ZERO-TX WALLET, tránh hiểu nhầm 2 nguồn dữ liệu.)
+    if aggregation_status == "not_assessed":
+        evidence.append(
+            "STRUCTURING CHƯA ĐƯỢC ĐÁNH GIÁ: không có dữ liệu off-chain "
+            "(Core Banking) để chạy rule structuring cho case này — "
+            "không đồng nghĩa đã kiểm tra và không phát hiện."
         )
 
     # Nghĩa vụ báo cáo giao dịch lớn theo TT27 — ĐỘC LẬP với quyết định

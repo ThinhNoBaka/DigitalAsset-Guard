@@ -516,6 +516,38 @@ def _build_suspicious_description(
             + "."
         )
 
+    # [FIX 2026-08-08 — AUDIT ZERO-TX WALLET] Khi case_status thành pending_review
+    # do THIẾU DỮ LIỆU on-chain (không phải do rủi ro cao thật sự), phải nêu rõ
+    # để chuyên viên không hiểu nhầm mức độ nghiêm trọng. Decision Engine đã ghi
+    # decision_evidence = "THIẾU DỮ LIỆU: ..." ở trên, nhưng bổ sung thêm 1 câu
+    # khẳng định rõ ràng ngay trong mô tả giao dịch đáng ngờ.
+    if state.get("insufficient_data", False):
+
+        parts.append(
+            "LƯU Ý QUAN TRỌNG: hệ thống chưa tìm thấy "
+            "bất kỳ giao dịch on-chain nào của ví (0 giao "
+            "dịch ETH và ERC20 trên Etherscan). Case này "
+            "được chuyển sang xem xét do THIẾU DỮ LIỆU "
+            "để đánh giá rủi ro, KHÔNG phải vì phát hiện "
+            "dấu hiệu rủi ro cao — cần chuyên viên xác "
+            "minh thủ công, không dùng classifier_score "
+            "của hệ thống làm căn cứ."
+        )
+
+    # [FIX 2026-08-08 — OFF-CHAIN DATA SEPARATION] Khi Aggregation Monitor
+    # KHÔNG có dữ liệu off-chain Core Banking (aggregation_status ==
+    # "not_assessed"), phải nêu rõ structuring CHƯA được đánh giá — không
+    # hiển thị như thể đã kiểm tra và pass (structuring_detected là None,
+    # không phải False).
+    if state.get("aggregation_status") == "not_assessed":
+
+        parts.append(
+            "Đánh giá structuring: Không đánh giá được "
+            "(thiếu dữ liệu off-chain Core Banking). "
+            "Không đồng nghĩa với việc đã kiểm tra và "
+            "không phát hiện."
+        )
+
     # Important disclaimer
     parts.append(
         "Các thông tin trên là kết quả hỗ trợ phân tích "
@@ -533,6 +565,9 @@ def _build_suspicious_description(
 
 def generate_alert_report(
     state: AMLState,
+    *,
+    report_customer_info=None,
+    report_entity_info=None,
 ) -> AMLState:
     """
     Tạo báo cáo STR khi case_status == "pending_review".
@@ -548,6 +583,19 @@ def generate_alert_report(
     - tạo DOCX;
     - lưu report_path;
     - đặt approval_status = pending để HITL xử lý.
+
+    [FIX 2026-08-09 — STR thiếu thông tin định danh khách hàng]
+    `report_customer_info` (PII plaintext: customer_name/customer_id_number/
+    customer_account_number) và `report_entity_info` (config tĩnh hệ thống:
+    reporting_entity_name/aml_responsible_person/reporter_name...) được truyền
+    qua closure từ core/graph_builder.py::PipelineRun — KHÔNG nằm trong state
+    channels, nên không bao giờ bị LangGraph checkpoint lưu (kể cả khi dùng
+    checkpointer persistent), không bao giờ chạm assert_no_raw_pii, và không
+    lẫn PII giữa các request (mỗi PipelineRun gọi build_pipeline mới).
+
+    Nếu KHÔNG truyền (default None — vd. demo_runner gọi trực tiếp mà chưa
+    chuyển qua PipelineRun), report vẫn in placeholder "[CHƯA CUNG CẤP]" /
+    "[CHƯA CẤU HÌNH]" như trước — KHÔNG bao giờ fallback sang PII của request khác.
     """
 
     # ========================================================
@@ -678,6 +726,20 @@ def generate_alert_report(
         or []
     )
 
+    # [FIX 2026-08-09 — LLM lỗi phải BÁO RÕ trong STR, không giấu thành data thật]
+    # legal_rag_status do agents/regulation_rag.py ghi: "OK" (trích dẫn pháp lý
+    # THẬT) hoặc "UNAVAILABLE" (không truy xuất được — thiếu LLM_API_KEY hoặc
+    # API call lỗi; khi đó legal_citations LUÔN = [], KHÔNG bao giờ chứa mock).
+    # KHÔNG ảnh hưởng Decision Engine — REPORT/REVIEW/PASS đã được quyết định
+    # trước khi RAG chạy.
+    legal_rag_status = state.get(
+        "legal_rag_status"
+    )
+
+    legal_rag_error = state.get(
+        "legal_rag_error"
+    )
+
     community_id = state.get(
         "community_id"
     )
@@ -694,6 +756,15 @@ def generate_alert_report(
         "thought",
         "",
     )
+
+    # [FIX 2026-08-09 — STR thiếu thông tin định danh khách hàng]
+    # Đọc PII plaintext + config entity từ tham số truyền qua closure (KHÔNG
+    # nằm trong state channels — xem docstring generate_alert_report).
+    # Nếu None (default — demo_runner gọi trực tiếp chưa qua PipelineRun),
+    # fallback rỗng → các field bên dưới in "[CHƯA CUNG CẤP]"/"[CHƯA CẤU HÌNH]"
+    # như trước, KHÔNG bao giờ lẫn PII của request khác.
+    rc = report_customer_info or {}
+    re = report_entity_info or {}
 
     # ========================================================
     # 4. CREATE DOCUMENT
@@ -769,7 +840,7 @@ def generate_alert_report(
     _add_field(
         doc,
         "Tên đối tượng báo cáo",
-        state.get(
+        re.get(
             "reporting_entity_name",
             "[CHƯA CẤU HÌNH]",
         ),
@@ -778,7 +849,7 @@ def generate_alert_report(
     _add_field(
         doc,
         "Mã đối tượng báo cáo",
-        state.get(
+        re.get(
             "reporting_entity_code",
             "[CHƯA CẤU HÌNH]",
         ),
@@ -787,7 +858,7 @@ def generate_alert_report(
     _add_field(
         doc,
         "Địa chỉ",
-        state.get(
+        re.get(
             "reporting_entity_address",
             "[CHƯA CẤU HÌNH]",
         ),
@@ -796,7 +867,7 @@ def generate_alert_report(
     _add_field(
         doc,
         "Điện thoại",
-        state.get(
+        re.get(
             "reporting_entity_phone",
             "[CHƯA CẤU HÌNH]",
         ),
@@ -805,7 +876,7 @@ def generate_alert_report(
     _add_field(
         doc,
         "Email",
-        state.get(
+        re.get(
             "reporting_entity_email",
             "[CHƯA CẤU HÌNH]",
         ),
@@ -815,7 +886,7 @@ def generate_alert_report(
         doc,
         "Người chịu trách nhiệm về phòng, "
         "chống rửa tiền",
-        state.get(
+        re.get(
             "aml_responsible_person",
             "[CHƯA CẤU HÌNH]",
         ),
@@ -824,7 +895,7 @@ def generate_alert_report(
     _add_field(
         doc,
         "Chức vụ",
-        state.get(
+        re.get(
             "aml_responsible_position",
             "[CHƯA CẤU HÌNH]",
         ),
@@ -833,7 +904,7 @@ def generate_alert_report(
     _add_field(
         doc,
         "Người lập báo cáo",
-        state.get(
+        re.get(
             "reporter_name",
             "[CHƯA CẤU HÌNH]",
         ),
@@ -856,7 +927,7 @@ def generate_alert_report(
     _add_field(
         doc,
         "Họ và tên",
-        state.get(
+        rc.get(
             "customer_name",
             "[CHƯA CUNG CẤP]",
         ),
@@ -865,7 +936,7 @@ def generate_alert_report(
     _add_field(
         doc,
         "Số giấy tờ định danh",
-        state.get(
+        rc.get(
             "customer_id_number",
             "[CHƯA CUNG CẤP]",
         ),
@@ -874,7 +945,7 @@ def generate_alert_report(
     _add_field(
         doc,
         "Số tài khoản",
-        state.get(
+        rc.get(
             "customer_account_number",
             "[CHƯA CUNG CẤP]",
         ),
@@ -1331,14 +1402,53 @@ def generate_alert_report(
         [
             "Classifier",
             f"{float(classifier_score):.4f}",
-            "Theo Risk/Classifier Agent",
+            "Theo Risk/Classifier Agent"
+            + (
+                " — KHÔNG dùng làm căn cứ quyết định khi thiếu dữ liệu "
+                "on-chain (xem mục Decision Evidence)"
+                if state.get("insufficient_data", False)
+                else ""
+            ),
         ],
         [
             "Graph (PPR)",
-            f"{float(graph_score):.4f}",
+            (
+                "(không có dữ liệu graph)"
+                if state.get("graph_data_available") is not True
+                else f"{float(graph_score):.4f}"
+            ),
             "Theo Graph Agent — điểm PageRank cá nhân hóa, không phải "
             "căn cứ trực tiếp cho quyết định (xem hop_distance_to_blacklist "
             "trong Graph Evidence bên dưới)",
+        ],
+        [
+            "Đủ dữ liệu on-chain",
+            "KHÔNG — ví chưa có lịch sử Etherscan"
+            if state.get("insufficient_data", False)
+            else "CÓ",
+            "FIX 2026-08-08: ví 0 giao dịch (txlist + tokentx) → Decision "
+            "Engine bắt buộc route REVIEW thủ công, không REPORT/PASS tự động "
+            "dựa trên classifier_score.",
+        ],
+        [
+            "Aggregation / Structuring",
+            (
+                "ĐÃ ĐÁNH GIÁ — "
+                + (
+                    "phát hiện dấu hiệu chia nhỏ"
+                    if state.get("structuring_detected") is True
+                    else "không phát hiện dấu hiệu"
+                )
+                if state.get("aggregation_status") == "assessed"
+                else "CHƯA ĐÁNH GIÁ"
+            ),
+            (
+                "Aggregation Monitor đã chạy rule structuring với dữ liệu "
+                "off-chain Core Banking (wallet_tx_history)."
+                if state.get("aggregation_status") == "assessed"
+                else "Không đánh giá được (thiếu dữ liệu off-chain Core "
+                "Banking) — KHÔNG đồng nghĩa đã kiểm tra sạch."
+            ),
         ],
     ]
 
@@ -1481,7 +1591,45 @@ def generate_alert_report(
     # 13. LEGAL APPENDIX
     # ========================================================
 
-    if legal_citations:
+    if legal_rag_status == "UNAVAILABLE":
+
+        # Thay vì để trống hoặc in nội dung không rõ nguồn gốc, STR phải nêu
+        # TƯỜNG MINH rằng căn cứ pháp lý tự động KHÔNG truy xuất được — cảnh báo
+        # này bắt buộc chuyên viên AML tự tra cứu trước khi nộp báo cáo.
+        _add_section_title(
+            doc,
+            "PHỤ LỤC B — CĂN CỨ PHÁP LÝ "
+            "ĐƯỢC RAG AGENT TRUY XUẤT",
+        )
+
+        paragraph = doc.add_paragraph()
+
+        run = paragraph.add_run(
+            "⚠️ Không thể truy xuất căn cứ pháp lý tự động "
+            "do lỗi hệ thống. Chuyên viên AML phải tự tra cứu "
+            "và bổ sung căn cứ pháp lý trước khi nộp báo cáo."
+        )
+
+        _set_run_font(
+            run,
+            bold=True,
+        )
+
+        if legal_rag_error:
+
+            error_paragraph = doc.add_paragraph()
+
+            error_run = error_paragraph.add_run(
+                f"Chi tiết lỗi hệ thống: "
+                f"{legal_rag_error}"
+            )
+
+            _set_run_font(
+                error_run,
+                italic=True,
+            )
+
+    elif legal_citations:
 
         _add_section_title(
             doc,

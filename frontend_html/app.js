@@ -197,14 +197,21 @@
       // `decision` (REPORT/REVIEW — cả 2 đều case_status=pending_review):
       //   - REPORT: vượt ngưỡng sanctions/structuring/classifier(θ)/graph hop
       //   - REVIEW: 2 tín hiệu vừa cùng lúc, cần chuyên viên xem decision_evidence
+      // FIX 2026-08-08 — AUDIT ZERO-TX WALLET: khi insufficient_data=True,
+      // REVIEW là do THIẾU DỮ LIỆU on-chain (ví chưa có lịch sử Etherscan),
+      // KHÔNG phải do rủi ro cao thật sự — hiển thị nhãn riêng để chuyên viên
+      // không hiểu nhầm mức độ nghiêm trọng (xem decision_evidence).
+      const insufficientData = state.insufficient_data === true;
       const decisionLabel =
         decision === "REPORT" ? "REPORT — vượt ngưỡng quyết định (sanctions/structuring/classifier/graph)"
+        : decision === "REVIEW" && insufficientData
+          ? "REVIEW — THIẾU DỮ LIỆU on-chain (ví chưa có lịch sử Etherscan), cần xác minh thủ công"
         : decision === "REVIEW" ? "REVIEW — 2 tín hiệu vừa (classifier + graph) cùng lúc"
         : "Cần chuyên viên xem xét";
       card.appendChild(
         el("div", { class: "risk-banner high" }, [
           el("span", { class: "risk-score-chip" }, [decision || status]),
-          el("span", {}, [`[${decisionLabel}] ${decision === "REVIEW" ? "Case dừng tại Decision Engine — xem Decision Evidence; chưa tự soạn STR." : "Cần chuyên viên phê duyệt trước khi gửi STR (Thông tư 27)."}`]),
+          el("span", {}, [`[${decisionLabel}] ${decision === "REVIEW" ? (insufficientData ? "Case dừng tại Decision Engine do thiếu dữ liệu — classifier_score KHÔNG được dùng làm căn cứ; chưa tự soạn STR. Xem Decision Evidence để biết lý do." : "Case dừng tại Decision Engine — xem Decision Evidence; chưa tự soạn STR.") : "Cần chuyên viên phê duyệt trước khi gửi STR (Thông tư 27)."}`]),
         ])
       );
       const sanctionMatch = state.sanction_result && state.sanction_result.is_match
@@ -282,10 +289,18 @@
     // 0.2/0.3/0.5 đã bỏ). Hiển thị trực tiếp 2 điểm nguồn + hop distance —
     // quyết định REPORT/REVIEW dựa trên rule-based composite (xem Decision
     // Evidence) chứ không phải 1 con số tổng.
+    // [Phase 2] Graph semantics: graph_data_available là TÍN HIỆU CHÍNH.
+    // Khi false (NO_GRAPH_DATA), KHÔNG hiển thị graph_score=0 / hop=N/A /
+    // fan_out=0 / community_id=0 như số liệu thật — đó chỉ là fallback nội bộ.
+    const graphDataAvailable = state.graph_data_available === true;
+    const graphNoDataLabel = "— (không có dữ liệu graph)";
     const scoreRows = [
       ["Classifier score", state.classifier_score ?? "N/A"],
-      ["Graph score (PPR)", state.graph_score ?? "N/A"],
-      ["Hop tới ví bị sanction", state.hop_distance_to_blacklist ?? "N/A"],
+      ["Graph score (PPR)", graphDataAvailable ? (state.graph_score ?? "N/A") : graphNoDataLabel],
+      ["Hop tới ví bị sanction", graphDataAvailable ? (state.hop_distance_to_blacklist ?? "N/A") : graphNoDataLabel],
+      ["Fan-out", graphDataAvailable ? (state.fan_out ?? "N/A") : graphNoDataLabel],
+      ["Cộng đồng Louvain", graphDataAvailable ? (state.community_id ?? "N/A") : graphNoDataLabel],
+      ["Đủ dữ liệu on-chain", state.insufficient_data === true ? "KHÔNG (ví chưa có lịch sử Etherscan)" : "Có"],
     ];
     const grid = el("div", { class: "breakdown-grid" });
     scoreRows.forEach(([label, value]) => {
@@ -303,6 +318,39 @@
       ])
     );
 
+    // [UX FIX] Graph interpretation — làm rõ PPR (Personalized PageRank) và
+    // "hop tới ví sanction" là 2 khái niệm ĐỘC LẬP với "có cạnh/giao dịch
+    // trực tiếp trên graph hay không". Người xem hay hiểu nhầm PPR=0 nghĩa
+    // là "graph không có dữ liệu", trong khi PPR=0 hoàn toàn có thể xảy ra
+    // dù graph có cạnh — PPR đo mức liên quan tới node seed/risk theo thuật
+    // toán Personalized PageRank, không đo số hop/cạnh. Tương tự, hop=N/A
+    // nghĩa là graph hiện có không tìm được đường tới ví sanction — không
+    // mâu thuẫn với việc có 1 giao dịch trực tiếp giữa wallet_from/wallet_to.
+    // [Phase 2] Phân biệt 3 trạng thái bằng graph_analysis_status — KHÔNG đoán
+    // từ PPR=0 / hop=None / fan_out=0 / community_id=0 (các số đó có thể là
+    // kết quả thuật toán hợp lệ khi graph có dữ liệu).
+    const graphStatus = state.graph_analysis_status;
+    const graphInterpretationText =
+      graphStatus === "GRAPH_AVAILABLE_SANCTION_PATH_FOUND"
+        ? `Đã tìm thấy đường đi tới ví trong danh sách trừng phạt, cách ${state.hop_distance_to_blacklist} hop giao dịch.`
+        : graphStatus === "GRAPH_AVAILABLE_NO_SANCTION_PATH"
+          ? "Graph có dữ liệu cho ví này nhưng KHÔNG tìm thấy đường đi tới ví thuộc danh sách trừng phạt (OFAC/UN/NHNN) trong phạm vi graph hiện có."
+          : "KHÔNG có dữ liệu đồ thị cho ví này trong nguồn dữ liệu graph hiện tại (NO_GRAPH_DATA) — không thể tính PPR / hop / fan-out / community, và không có đường đi đáng ngờ rút ra từ graph.";
+    card.appendChild(
+      el("div", { class: "breakdown-item", style: "margin-bottom:18px" }, [
+        el("div", { class: "label" }, ["Graph interpretation"]),
+        el("p", { style: "font-size:13px;margin:8px 0 0;color:var(--ink-muted)" }, [
+          graphInterpretationText + (graphStatus === "GRAPH_AVAILABLE_NO_SANCTION_PATH" ? " Hop=N/A ở đây là kết quả PHÂN TÍCH (không có path), không phải thiếu dữ liệu." : ""),
+        ]),
+        el("p", { style: "font-size:13px;margin:4px 0 0;color:var(--ink-muted)" }, [
+          `Giao dịch trực tiếp đang xét: ${shorten(state.wallet_from || "")} → ${shorten(state.wallet_to || "")}`,
+        ]),
+        el("p", { style: "font-size:12px;margin:8px 0 0;color:var(--ink-faint)" }, [
+          "Lưu ý: PPR = 0 KHÔNG có nghĩa graph không có cạnh/giao dịch. PPR (Personalized PageRank) đo mức độ liên quan của ví này tới các ví seed/rủi ro theo thuật toán riêng, khác với số cạnh hay số hop tới ví sanction — 2 chỉ số này có thể độc lập với nhau.",
+        ]),
+      ])
+    );
+
     if (topFeatures.length > 0) {
       card.appendChild(el("p", { style: "font-weight:600;font-size:13.5px;margin-bottom:8px" }, ["Đặc trưng ảnh hưởng lớn nhất tới điểm phân loại (top feature importance toàn cục)"]));
       const list = el("ul", { class: "feature-list" });
@@ -312,11 +360,13 @@
       card.appendChild(list);
     }
 
+    // [Phase 2] Gate toàn bộ graph notes theo graph_data_available — fan_out=0 /
+    // community_id=0 khi NO_GRAPH_DATA không được hiển thị như số liệu thật.
     const notes = [];
-    if (state.hop_distance_to_blacklist !== null && state.hop_distance_to_blacklist !== undefined)
+    if (graphDataAvailable && state.hop_distance_to_blacklist !== null && state.hop_distance_to_blacklist !== undefined)
       notes.push(`Cách ví trong danh sách trừng phạt ${state.hop_distance_to_blacklist} hop giao dịch`);
-    if (state.fan_out !== null && state.fan_out !== undefined) notes.push(`Fan-out = ${state.fan_out}`);
-    if (state.community_id !== null && state.community_id !== undefined) notes.push(`Thuộc cộng đồng Louvain #${state.community_id}`);
+    if (graphDataAvailable && state.fan_out !== null && state.fan_out !== undefined) notes.push(`Fan-out = ${state.fan_out}`);
+    if (graphDataAvailable && state.community_id !== null && state.community_id !== undefined) notes.push(`Thuộc cộng đồng Louvain #${state.community_id}`);
     if (notes.length > 0) {
       const notesRow = el("div", { class: "graph-notes" });
       notes.forEach((n) => notesRow.appendChild(el("span", { class: "note-chip" }, [n])));
@@ -370,31 +420,68 @@
     return addr.length > 14 ? `${addr.slice(0, 10)}…` : addr;
   }
 
+  // [Phase 2] Phân biệt 3 trạng thái graph. BỎ fallback [walletFrom, walletTo]
+  // giả tạo trước đây — flow SVG chỉ vẽ ĐÚNG suspicious_path do Graph Agent
+  // tìm (path thật bắt đầu từ ví trong danh sách trừng phạt).
   function renderSuspiciousPath() {
     const container = document.getElementById("suspicious-path-container");
     clear(container);
     const state = currentResult.state;
-    const suspiciousPath = state.suspicious_path || [];
     const walletFrom = state.wallet_from || "";
     const walletTo = state.wallet_to || "";
-    const pathNodes =
-      suspiciousPath.length > 0
-        ? suspiciousPath.includes(walletTo)
-          ? suspiciousPath
-          : [...suspiciousPath, walletTo]
-        : [walletFrom, walletTo].filter(Boolean);
-    const flaggedNode = suspiciousPath.length > 0 ? suspiciousPath[0] : null;
+    const graphDataAvailable = state.graph_data_available === true;
+    const suspiciousPath = graphDataAvailable ? (state.suspicious_path || []) : [];
+    const pathFound = state.sanction_path_found === true && suspiciousPath.length > 0;
 
     const card = el("div", { class: "card" });
     card.appendChild(el("div", { class: "card-header" }, [el("h2", {}, ["Sơ đồ dòng tiền (đường đi đáng ngờ)"])]));
+
+    if (!graphDataAvailable) {
+      // Trạng thái 1: NO_GRAPH_DATA — không được gọi là "suspicious path".
+      card.appendChild(
+        el("p", { class: "card-subtitle", style: "margin-top:-4px" }, [
+          "KHÔNG có dữ liệu đồ thị cho ví này trong nguồn dữ liệu graph hiện tại — không thể rút ra đường đi đáng ngờ nào từ graph.",
+        ])
+      );
+      card.appendChild(el("p", { class: "empty-note" }, [
+        "Không có graph evidence cho giao dịch này (NO_GRAPH_DATA).",
+      ]));
+      container.appendChild(card);
+      return;
+    }
+
+    if (!pathFound) {
+      // Trạng thái 2: GRAPH_AVAILABLE_NO_SANCTION_PATH — graph có dữ liệu,
+      // thuật toán chạy thật, nhưng không có path tới ví sanction.
+      card.appendChild(
+        el("p", { class: "card-subtitle", style: "margin-top:-4px" }, [
+          "Graph có dữ liệu cho ví này nhưng KHÔNG tìm thấy đường đi tới ví trong danh sách trừng phạt (OFAC/UN/NHNN) trong phạm vi graph hiện có — không có suspicious path để vẽ.",
+        ])
+      );
+      const notesEmpty = [];
+      if (state.fan_out !== null && state.fan_out !== undefined) notesEmpty.push(`Fan-out = ${state.fan_out}`);
+      if (state.community_id !== null && state.community_id !== undefined) notesEmpty.push(`Cộng đồng Louvain #${state.community_id}`);
+      if (notesEmpty.length > 0) {
+        const notesRow = el("div", { class: "graph-notes" });
+        notesEmpty.forEach((n) => notesRow.appendChild(el("span", { class: "note-chip" }, [n])));
+        card.appendChild(notesRow);
+      }
+      container.appendChild(card);
+      return;
+    }
+
+    // Trạng thái 3: GRAPH_AVAILABLE_SANCTION_PATH_FOUND — vẽ SUSPICIOUS_PATH
+    // THẬT (phần tử đầu = ví sanitized, phần tử cuối = wallet_from).
+    const pathNodes = suspiciousPath.includes(walletTo)
+      ? suspiciousPath
+      : [...suspiciousPath, walletTo].filter(Boolean);
+    const flaggedNode = suspiciousPath[0];
+
     card.appendChild(
       el("p", { class: "card-subtitle", style: "margin-top:-4px" }, [
-        suspiciousPath.length > 0
-          ? `Đồ thị (Neo4j PPR + Louvain) phát hiện ${pathNodes.length - 1} bước (hop) từ ví trong danh sách trừng phạt tới ví đích của giao dịch này.`
-          : "Không tìm thấy đường đi tới ví trong danh sách trừng phạt trong phạm vi đồ thị hiện có -- sơ đồ dưới đây chỉ thể hiện giao dịch trực tiếp giữa ví nguồn và ví đích.",
+        `Graph phát hiện ${pathNodes.length - 1} bước (hop) từ ví trong danh sách trừng phạt tới ví đích của giao dịch này.`,
       ])
     );
-
     card.appendChild(buildFlowSvg(pathNodes, flaggedNode, walletFrom, walletTo, state.amount_vnd));
 
     const legend = el("div", { class: "flow-legend" }, [
@@ -546,7 +633,7 @@
   }
 
   // ---- Chat ----
-  const chatSuggestions = ["Tại sao Risk cao?", "PPR nghĩa là gì?", "Có cần lập STR không?"];
+  const chatSuggestions = ["Tại sao quyết định REPORT?", "PPR nghĩa là gì?", "Có cần lập STR không?"];
   let chatHistory = [];
 
   function renderChat() {
@@ -577,7 +664,7 @@
     card.appendChild(chatErr);
 
     const inputRow = el("div", { class: "chat-input-row" });
-    const input = el("input", { placeholder: "Đặt câu hỏi, ví dụ: 'Tại sao Risk cao?'" });
+    const input = el("input", { placeholder: "Đặt câu hỏi, ví dụ: 'Tại sao quyết định REPORT?'" });
     const askBtn = el("button", { class: "btn btn-primary" }, ["Hỏi AI"]);
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") askChat(input.value, threadDiv, input, askBtn, chatErr);

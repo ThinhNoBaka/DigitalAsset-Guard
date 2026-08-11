@@ -104,7 +104,7 @@ def main():
         print(f"  non_zero_count   : {info['non_zero_count']} / {len(info['vector'])}")
         print(f"  non_zero_indices : {info['non_zero_indices']}")
         print(f"  feat_0 value     : {info['vector'][0]}")
-        print("  Vector (165 giá trị):")
+        print(f"  Vector ({len(info['vector'])} giá trị):")
         print("  " + str([round(float(v), 6) for v in info["vector"]]))
 
     # So sánh

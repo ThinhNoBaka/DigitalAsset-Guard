@@ -1,0 +1,15 @@
+Ethereum Fraud Detection Dataset Summary
+========================================
+Input file: data\raw\ethereum_fraud\Complete.csv
+Output file: data\processed\ethereum_fraud_training_clean.csv
+Original rows: 4681
+Final rows: 4675
+Original columns: 50
+Final features: 37
+Class distribution: {0: 2497, 1: 2178}
+Unique addresses: 4675
+Removed rows (duplicates): 4
+Removed rows (conflicting FLAG addresses): 1
+Removed columns (non-reproducible): 11
+Review-required columns: 0
+========================================
