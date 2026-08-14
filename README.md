@@ -1,4 +1,4 @@
-# 🛡️ DigitalAsset Guard — AML AI Copilot
+# DigitalAsset Guard
 
 > Hỗ trợ chuyên viên AML ngân hàng / VASP / tổ chức tín dụng phát hiện và điều tra **giao dịch tài sản số (blockchain) đáng ngờ** liên quan đến rửa tiền — từ sàng lọc ban đầu đến **dự thảo báo cáo giao dịch đáng ngờ (STR)** theo khung pháp lý Việt Nam, với **human-in-the-loop**.
 
@@ -11,53 +11,55 @@
 
 ---
 
-## 📸 Giao diện web
+## Giao diện web
 
-> 📌 **Chèn ảnh giao diện web vào đây.** Thay `pictures/ten_file_anh.png` bằng đường dẫn tới ảnh của bạn (có thể đặt ảnh trong thư mục `pictures/` hoặc dùng link CDN/Imgur).
+### Đăng nhập 
 
-### 🏠 Dashboard / Kết quả pipeline
+<p align="center">
+  <img src="pictures/Screenshot 2026-08-14 222521.png" alt="Giao diện - Dashboard" width="800"/>
+</p>
+
+### Dashboard 
 
 <!-- 👇 CHÈN ẢNH GIAO DIỆN 1 (VÍ DỤ: TRANG CHÍNH / KẾT QUẢ PIPELINE) -->
 <p align="center">
-  <img src="pictures/Screenshot%202026-08-06%20113301.png" alt="Giao diện - Dashboard" width="800"/>
+  <img src="pictures/Screenshot 2026-08-14 222659.png" alt="Giao diện - Dashboard" width="800"/>
 </p>
 
-### 🔍 Chi tiết rủi ro & bằng chứng
+### Chi tiết rủi ro 
 
 <!-- 👇 CHÈN ẢNH GIAO DIỆN 2 (VÍ DỤ: RISK BREAKDOWN / GRAPH PATH SVG) -->
 <p align="center">
-  <img src="pictures/Screenshot%202026-08-06%20113541.png" alt="Giao diện - Chi tiết rủi ro" width="800"/>
+  <img src="pictures/Screenshot 2026-08-14 222717.png" alt="Giao diện - Chi tiết rủi ro" width="800"/>
 </p>
 
-### 📄 Dự thảo báo cáo STR
+### Căn cứ pháp lý 
 
 <!-- 👇 CHÈN ẢNH GIAO DIỆN 3 (VÍ DỤ: MÀN HÌNH APPROVE/REJECT & GIAO DIỆN STR) -->
 <p align="center">
-  <img src="pictures/Screenshot%202026-08-06%20113611.png" alt="Giao diện - Báo cáo STR" width="800"/>
+  <img src="pictures/Screenshot 2026-08-14 222727.png" alt="Giao diện - Báo cáo STR" width="800"/>
 </p>
-
-> 💡 **Mẹo:** các ảnh mẫu hiện có trong thư mục [`pictures/`](pictures/). Bạn có thể thay `TenFile.png` bằng tên file thật, hoặc xóa block và dán link ảnh của riêng mình.
 
 ---
 
-## ✨ Tính năng chính
+## Tính năng chính
 
-- 🔐 **Privacy by Design** — PII (tên, CCCD, số tài khoản) bị **băm SHA-256 + salt ngay tại request boundary**, có chốt kiểm tra tự động `assert_no_raw_pii`; fuzzy name-screening chạy **trước khi băm**.
-- 🤖 **5 Assistant độc lập**:
+- **Privacy by Design** — PII (tên, CCCD, số tài khoản) bị **băm SHA-256 + salt ngay tại request boundary**, có chốt kiểm tra tự động `assert_no_raw_pii`; fuzzy name-screening chạy **trước khi băm**.
+- **5 Assistant độc lập**:
   - **Aggregation Monitor** — phát hiện **structuring/smurfing** (chia nhỏ giao dịch né ngưỡng báo cáo).
   - **Transaction Assistant** — chấm điểm rủi ro bằng **XGBoost** trên feature vector **thật (37 features)** từ Etherscan, kèm giải thích **SHAP per-transaction**.
   - **Graph Assistant** — phân tích đồ thị dòng tiền: **Personalized PageRank**, **Louvain community**, hop distance tới ví bị trừng phạt, suspicious path, fan-out (NetworkX cho demo / Neo4j GDS cho production).
   - **Sanctions Assistant** — sàng lọc chính xác địa chỉ ví với danh sách **OFAC SDN**.
   - **Decision Engine** — tổng hợp thành quyết định **PASS / REVIEW / REPORT** bằng **rule-based composite** (5 rule độc lập, không dùng một con số rủi ro tổng hợp).
-- ⚖️ **Regulation RAG** — truy vấn ChromaDB + LLM để trích dẫn đúng điều khoản (Thông tư 27/2025/TT-NHNN, Luật PCRT 2022 + QĐ 11/2023/QĐ-TTg), **không bao giờ giả vờ ổn** khi LLM lỗi (`legal_rag_status=UNAVAILABLE`).
-- 📄 **STR Draft — Mẫu 04** — sinh báo cáo giao dịch đáng ngờ `.docx` tự động khi `decision=REPORT`, có disclaimer "dự thảo, phải chuyên viên phê duyệt".
-- 🧑‍💼 **Human-in-the-Loop** — pipeline dừng tại checkpoint chờ chuyên viên **Approve/Reject** trước khi STR được coi là hợp lệ.
-- 💬 **Chat giải thích** — LLM chỉ được dùng dữ liệu trong state, không tự tạo số liệu / căn cứ pháp lý.
-- 🖥️ **Frontend AML dashboard** — nhập giao dịch, xem pipeline rail, risk breakdown, sơ đồ dòng tiền SVG, citations, phê duyệt, tải STR.
+- **Regulation RAG** — truy vấn ChromaDB + LLM để trích dẫn đúng điều khoản (Thông tư 27/2025/TT-NHNN, Luật PCRT 2022 + QĐ 11/2023/QĐ-TTg), **không bao giờ giả vờ ổn** khi LLM lỗi (`legal_rag_status=UNAVAILABLE`).
+- **STR Draft — Mẫu 04** — sinh báo cáo giao dịch đáng ngờ `.docx` tự động khi `decision=REPORT`, có disclaimer "dự thảo, phải chuyên viên phê duyệt".
+- **Human-in-the-Loop** — pipeline dừng tại checkpoint chờ chuyên viên **Approve/Reject** trước khi STR được coi là hợp lệ.
+- **Chat giải thích** — LLM chỉ được dùng dữ liệu trong state, không tự tạo số liệu / căn cứ pháp lý.
+- **Frontend AML dashboard** — nhập giao dịch, xem pipeline rail, risk breakdown, sơ đồ dòng tiền SVG, citations, phê duyệt, tải STR.
 
 ---
 
-## 🏗️ Kiến trúc hệ thống
+## Kiến trúc hệ thống
 
 ```
 client (browser / POST API)
@@ -111,7 +113,7 @@ PipelineRun.run()  (LangGraph)
 
 ---
 
-## 🧰 Công nghệ sử dụng
+## Công nghệ sử dụng
 
 | Công nghệ | Mục đích |
 |---|---|
@@ -131,7 +133,7 @@ PipelineRun.run()  (LangGraph)
 
 ---
 
-## 🚀 Bắt đầu nhanh
+## Bắt đầu nhanh
 
 ### 1. Yêu cầu
 
@@ -198,7 +200,7 @@ python db/neo4j_setup.py
 
 ---
 
-## 📂 Cấu trúc thư mục
+## Cấu trúc thư mục
 
 ```
 TPers_prj/
@@ -246,7 +248,7 @@ TPers_prj/
 
 ---
 
-## 📊 Kết quả mô hình
+## Kết quả mô hình
 
 **Dataset:** Ethereum Fraud Detection (Farrugia) — 4.675 ví, 37 features, stratify 20% test.
 
@@ -261,7 +263,7 @@ TPers_prj/
 
 ---
 
-## 🧪 Kiểm thử
+## Kiểm thử
 
 Các test tự động bao phủ phần lõi:
 
@@ -277,19 +279,19 @@ Các test tự động bao phủ phần lõi:
 
 ---
 
-## 🚧 Trạng thái & Giới hạn
+## Trạng thái & Giới hạn
 
 Project ở mức **Prototype/MVP chạy được end-to-end**:
 
-- ✅ Pipeline, API, tests, model chạy thực sự; Neo4j/GDS + ChromaDB + LLM đã verify chạy thật (xem `logs/`).
-- ⚠️ Dữ liệu graph là demo scenarios / seed test — **chưa có pipeline ingest blockchain thực tế quy mô lớn**.
-- ⚠️ Dữ liệu off-chain (Core Banking) cho Aggregation Monitor là **mock 1 account**.
-- ⚠️ Ngưỡng "medium" Rule 5 (REVIEW) là giả định tạm, chưa calibrate bằng dữ liệu thật.
-- ⚠️ Chỉ hỗ trợ Ethereum (giới hạn Etherscan free).
+- Pipeline, API, tests, model chạy thực sự; Neo4j/GDS + ChromaDB + LLM đã verify chạy thật (xem `logs/`).
+- Dữ liệu graph là demo scenarios / seed test — **chưa có pipeline ingest blockchain thực tế quy mô lớn**.
+- Dữ liệu off-chain (Core Banking) cho Aggregation Monitor là **mock 1 account**.
+- Ngưỡng "medium" Rule 5 (REVIEW) là giả định tạm, chưa calibrate bằng dữ liệu thật.
+- Chỉ hỗ trợ Ethereum (giới hạn Etherscan free).
 
 ---
 
-## 🔮 Định hướng phát triển
+## Định hướng phát triển
 
 1. Ingest đồ thị blockchain thực tế vào Neo4j liên tục (indexer).
 2. Nối Core Banking thật cho `wallet_tx_history`.
@@ -301,6 +303,6 @@ Project ở mức **Prototype/MVP chạy được end-to-end**:
 
 ---
 
-## 📄 Giấy phép
+## Giấy phép
 
 Dự án phục vụ mục đích học tập / nghiên cứu / demo. Vui lòng không sử dụng cho mục đích sản xuất khi chưa rà soát với văn bản pháp luật gốc và chuyên gia pháp lý.
