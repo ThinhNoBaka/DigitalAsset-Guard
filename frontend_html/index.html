@@ -28,8 +28,7 @@
     <header class="app-header">
       <div>
         <span class="eyebrow">DigitalAsset Guard</span>
-        <h1>AML Copilot — Bảng điều khiển chuyên viên</h1>
-        <p>Luồng nghiệp vụ 8 bước: Webhook → Privacy Layer → 5 Assistants → Human-in-the-loop → STR.</p>
+        <h1>Bảng điều khiển chuyên viên</h1>
       </div>
       <div style="display:flex; align-items:center; gap:12px;">
         <span id="whoami" class="env-tag"></span>
@@ -38,41 +37,40 @@
     </header>
 
     <form id="tx-form" class="card">
-      <div class="card-header"><h2><span class="step-number">01</span>Nhập giao dịch (mô phỏng webhook)</h2></div>
+      <div class="card-header"><h2><span class="step-number">01</span>Nhập giao dịch</h2></div>
       <div class="form-grid">
         <div class="field">
           <label for="tx_hash">Tx Hash</label>
-          <input id="tx_hash" class="mono" placeholder="Để trống để tự sinh" />
+          <input id="tx_hash" class="mono" placeholder="" />
         </div>
         <div class="field">
           <label for="amount_vnd">Giá trị giao dịch (VND)</label>
-          <input id="amount_vnd" type="number" min="0" step="1000000" value="620000000" />
+          <input id="amount_vnd" type="number" min="0" step="1000000" value="0" />
         </div>
         <div class="field">
           <label for="wallet_from">Ví nguồn (wallet_from)</label>
-          <input id="wallet_from" class="mono" value="0xbadwallet123" />
+          <input id="wallet_from" class="mono" value="" />
         </div>
         <div class="field">
           <label for="wallet_to">Ví đích (wallet_to)</label>
-          <input id="wallet_to" class="mono" value="0xdestination_wallet_demo" />
+          <input id="wallet_to" class="mono" value="" />
         </div>
-        <div class="section-divider">Thông tin định danh khách hàng (PII gốc)</div>
-        <div class="pii-note">Sẽ bị băm SHA-256 ngay tại Privacy Layer, không lưu bản gốc vào state.</div>
+        <div class="section-divider">Thông tin định danh khách hàng</div>
         <div class="field pii">
           <label for="fullname">Họ và tên</label>
-          <input id="fullname" value="Nguyễn Văn A" />
+          <input id="fullname" value="" />
         </div>
         <div class="field pii">
           <label for="id_number">Số CCCD/Hộ chiếu</label>
-          <input id="id_number" class="mono" value="001096001234" />
+          <input id="id_number" class="mono" value="" />
         </div>
         <div class="field pii">
           <label for="account_number">Số tài khoản ngân hàng</label>
-          <input id="account_number" class="mono" value="1903456789012" />
+          <input id="account_number" class="mono" value="" />
         </div>
       </div>
       <div class="btn-row">
-        <button id="submit-btn" type="submit" class="btn btn-primary">Kích hoạt webhook / Chạy pipeline</button>
+        <button id="submit-btn" type="submit" class="btn btn-primary">Bắt đầu phân tích</button>
       </div>
     </form>
 

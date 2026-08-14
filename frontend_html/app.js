@@ -117,7 +117,7 @@
       runError.hidden = false;
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = "Kích hoạt webhook / Chạy pipeline";
+      submitBtn.textContent = "Bắt đầu phân tích";
     }
   });
 
