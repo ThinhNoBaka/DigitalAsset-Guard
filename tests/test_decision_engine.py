@@ -117,6 +117,7 @@ def test_decision_evidence_includes_fuzzy_warning():
         name_similarity_score=0.85,
     )
     result = make_decision(state)
-    assert result["decision"] == "PASS"  # vẫn PASS
-    # Nhưng evidence có fuzzy warning
+    # Tên gần giống SDN không được auto-clear: tối thiểu REVIEW.
+    assert result["decision"] == "REVIEW"
+    assert result["case_status"] == "pending_review"
     assert any("Fuzzy name similarity warning" in ev for ev in result["decision_evidence"])

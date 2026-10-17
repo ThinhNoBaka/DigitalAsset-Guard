@@ -13,16 +13,17 @@ gọi fuzzy-match. Đây là lỗ hổng thật (thiếu wiring), không phải 
 và để kịch bản "Name Similarity" của V2-4 (THAY_DOI_V2.md) có cái để chạy qua.
 Nếu dự án đã có sẵn module này ở nơi khác, hãy gửi để hợp nhất, tránh trùng lặp.
 
-Dùng Levenshtein similarity ratio thuần Python (KHÔNG dùng thư viện ngoài như
-rapidfuzz để tránh thêm dependency ở bước này) -- xem `_levenshtein_ratio_pct`.
-Có thể thay bằng rapidfuzz sau nếu cần tối ưu tốc độ trên tập SDN lớn (19k+
-entry -- O(n) lần so khớp mỗi giao dịch có thể chậm ở scale thật, chấp nhận
-được cho MVP/demo).
+Dùng Levenshtein similarity ratio của rapidfuzz (C++, đã có trong
+requirements.txt) -- cùng công thức (1 - distance / max_len) * 100 với bản
+thuần Python trước đây, nhưng đủ nhanh để quét ~19k tên SDN mỗi giao dịch.
 """
 import os
 import re
 from pathlib import Path
 from typing import List, Optional, Tuple
+
+from rapidfuzz import process
+from rapidfuzz.distance import Levenshtein
 
 SDN_XML_PATH = Path("data/raw/ofac/sdn.xml")
 SDN_NAMES_CACHE_PATH = Path("data/processed/sdn_names.txt")
@@ -33,29 +34,13 @@ SDN_NAMES_CACHE_PATH = Path("data/processed/sdn_names.txt")
 SIMILARITY_THRESHOLD_PCT = 85.0
 
 _sdn_names_cache: Optional[List[str]] = None
+# Bản đã chuẩn hoá của _sdn_names_cache -- tránh chuẩn hoá lại ~19k tên mỗi giao dịch.
+_normalized_sdn_cache: Optional[List[str]] = None
 
 
-def _levenshtein_distance(a: str, b: str) -> int:
-    """Levenshtein distance thuần Python (DP 2 hàng, O(len(a)*len(b)))."""
-    if a == b:
-        return 0
-    if not a:
-        return len(b)
-    if not b:
-        return len(a)
-
-    prev_row = list(range(len(b) + 1))
-    for i, ca in enumerate(a, start=1):
-        curr_row = [i] + [0] * len(b)
-        for j, cb in enumerate(b, start=1):
-            cost = 0 if ca == cb else 1
-            curr_row[j] = min(
-                prev_row[j] + 1,       # xoá
-                curr_row[j - 1] + 1,   # thêm
-                prev_row[j - 1] + cost,  # thay
-            )
-        prev_row = curr_row
-    return prev_row[-1]
+def _normalize_name(name: str) -> str:
+    """Chuẩn hoá upper + gộp khoảng trắng thừa trước khi so khớp."""
+    return re.sub(r"\s+", " ", name.strip().upper())
 
 
 def levenshtein_similarity_pct(a: str, b: str) -> float:
@@ -65,13 +50,11 @@ def levenshtein_similarity_pct(a: str, b: str) -> float:
     trừ điểm oan vì hoa/thường hoặc khoảng trắng). Trả về giá trị THẬT tính
     được, KHÔNG làm tròn tuỳ ý (yêu cầu THAY_DOI_V2.md V2-4).
     """
-    norm_a = re.sub(r"\s+", " ", a.strip().upper())
-    norm_b = re.sub(r"\s+", " ", b.strip().upper())
-    max_len = max(len(norm_a), len(norm_b))
-    if max_len == 0:
+    norm_a = _normalize_name(a)
+    norm_b = _normalize_name(b)
+    if not norm_a and not norm_b:
         return 100.0
-    distance = _levenshtein_distance(norm_a, norm_b)
-    return (1 - distance / max_len) * 100
+    return Levenshtein.normalized_similarity(norm_a, norm_b) * 100
 
 
 def load_sdn_names(xml_path: Path = SDN_XML_PATH, cache_path: Path = SDN_NAMES_CACHE_PATH) -> List[str]:
@@ -133,19 +116,30 @@ def screen_name_against_sdn(
     không phải trùng tuyệt đối -- trùng tuyệt đối nên được coi là 1 dạng khác,
     nhưng ở đây vẫn tính là warning vì rõ ràng còn đáng ngờ hơn "gần giống").
     """
+    global _normalized_sdn_cache
+
     if not fullname or not fullname.strip():
         return False, None, None
 
-    names = sdn_names if sdn_names is not None else load_sdn_names()
+    if sdn_names is not None:
+        names = sdn_names
+        normalized_names = [_normalize_name(candidate) for candidate in names]
+    else:
+        names = load_sdn_names()
+        if _normalized_sdn_cache is None or len(_normalized_sdn_cache) != len(names):
+            _normalized_sdn_cache = [_normalize_name(candidate) for candidate in names]
+        normalized_names = _normalized_sdn_cache
     if not names:
         return False, None, None
 
-    best_score = -1.0
-    best_name = None
-    for candidate in names:
-        score = levenshtein_similarity_pct(fullname, candidate)
-        if score > best_score:
-            best_score, best_name = score, candidate
+    best = process.extractOne(
+        _normalize_name(fullname),
+        normalized_names,
+        scorer=Levenshtein.normalized_similarity,
+        processor=None,
+    )
+    best_score = best[1] * 100
+    best_name = names[best[2]]
 
     warning = best_score >= threshold_pct
     return warning, round(best_score, 2), (best_name if warning else None)

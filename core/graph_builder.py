@@ -47,7 +47,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from core.state import AMLState
 from core.config import build_report_entity_config
-from core.privacy_layer import privacy_layer_node
+from core.privacy_layer import pii_gate_node, privacy_layer_node
 
 from agents.aggregation_monitor import analyze_aggregation
 from agents.transaction_classifier import analyze_transaction
@@ -176,9 +176,11 @@ def build_pipeline(
     # Nodes
     # -------------------------------------------------------------------------
 
+    # Băm PII + name screening đã chạy trong PipelineRun.__init__ (trước
+    # invoke). Node này chỉ còn là chốt assert_no_raw_pii.
     builder.add_node(
         "privacy_layer",
-        privacy_layer_node,
+        pii_gate_node,
     )
 
     builder.add_node(
@@ -414,6 +416,13 @@ class PipelineRun:
             report_customer_info["customer_account_number"] = self.state["account_number"]
         report_entity_info = build_report_entity_config()
 
+        # Privacy Layer chạy TẠI ĐÂY, TRƯỚC graph.invoke(): AMLState cố ý không
+        # khai báo fullname/id_number/account_number (để checkpoint không bao
+        # giờ lưu PII gốc), nên LangGraph sẽ bỏ các key đó trước khi tới node
+        # đầu tiên — nếu băm trong graph thì hashed_* luôn None và name
+        # screening không chạy. Sau dòng này self.state chỉ còn hashed_*.
+        self.state = privacy_layer_node(self.state)
+
         self.graph = build_pipeline(
             checkpointer=self.checkpointer,
             report_customer_info=report_customer_info,
@@ -559,6 +568,8 @@ class PipelineRun:
     def resume(
         self,
         approval_status: str,
+        reviewed_by: str = None,
+        reviewed_at: str = None,
     ) -> AMLState:
         """
         Resume pipeline sau khi chuyên viên APPROVE / REJECT.
@@ -617,15 +628,19 @@ class PipelineRun:
         # Update checkpoint
         # ---------------------------------------------------------------------
 
+        review_update = {
+            "approval_status": approval_status,
+            "reviewed_by": reviewed_by,
+            "reviewed_at": reviewed_at,
+        }
+
         self.graph.update_state(
             self.config,
-            {
-                "approval_status": approval_status,
-            },
+            review_update,
         )
 
         # Đồng bộ state local.
-        self.state["approval_status"] = approval_status
+        self.state.update(review_update)
 
         # ---------------------------------------------------------------------
         # Resume từ checkpoint

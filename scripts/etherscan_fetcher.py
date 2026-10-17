@@ -32,6 +32,13 @@ CHAINS = {
     "ethereum": 1,
 }
 
+# Timeout (giây) cho mỗi request Etherscan — tránh treo request API vô hạn.
+REQUEST_TIMEOUT_SECONDS = 15
+
+
+class EtherscanFetchError(RuntimeError):
+    """Etherscan trả lỗi thật (rate limit, sai key, ...) — KHÁC với ví không có giao dịch."""
+
 
 def fetch_chain_action(chain_name, chain_id, address, api_key, action, max_records=1000, page_size=100):
     """
@@ -39,6 +46,13 @@ def fetch_chain_action(chain_name, chain_id, address, api_key, action, max_recor
     tự phân trang. Dùng chung cho:
       - action='txlist'  -> giao dịch ETH thường
       - action='tokentx' -> giao dịch chuyển ERC20
+
+    sort=desc: lấy max_records giao dịch GẦN NHẤT (sort=asc + cắt max_records
+    sẽ chỉ thấy lịch sử cũ nhất của ví, bỏ qua hoạt động hiện tại).
+
+    Raise EtherscanFetchError khi Etherscan trả lỗi (status != "1" và không
+    phải "No transactions found") — KHÔNG trả list rỗng, vì list rỗng bị
+    Transaction Assistant hiểu là ví chưa có giao dịch (insufficient_data).
     """
     all_records = []
     page = 1
@@ -53,20 +67,21 @@ def fetch_chain_action(chain_name, chain_id, address, api_key, action, max_recor
             "endblock": 99999999,
             "page": page,
             "offset": page_size,
-            "sort": "asc",
+            "sort": "desc",
             "apikey": api_key,
         }
-        response = requests.get(BASE_URL, params=params)
+        response = requests.get(BASE_URL, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
+        response.raise_for_status()
         data = response.json()
 
         if data.get("status") != "1":
             msg = data.get("message", "")
             result = data.get("result", "")
             if "No transactions found" in str(result) or "No transactions found" in msg:
-                pass  # hết dữ liệu, không phải lỗi
-            else:
-                print(f"    [LỖI] {chain_name} ({action}): {msg} - {result}")
-            break
+                break  # hết dữ liệu, không phải lỗi
+            raise EtherscanFetchError(
+                f"Etherscan lỗi khi lấy {action} của {address} trên {chain_name}: {msg} - {result}"
+            )
 
         batch = data.get("result", [])
         if not batch:
@@ -89,10 +104,14 @@ def fetch_wallet_record(address: str, max_records: int = 100, page_size: int = 1
     Fetch toàn bộ dữ liệu on-chain của 1 ví, trả về dict ĐÚNG schema wallet_record
     mà feature_builder / transaction_classifier bắt buộc ở production path.
 
-    - Ví không có giao dịch (vd. địa chỉ giả "0xbadwallet123") -> trả về
+    - Ví không có giao dịch (Etherscan trả "No transactions found") -> trả về
       chains/token_transfers = [] (KHÔNG raise). feature_builder xử lý list rỗng
       -> feature toàn 0 -> classifier chạy bình thường (không crash pipeline).
+    - Etherscan trả lỗi (rate limit, sai key, địa chỉ không hợp lệ, ...) hoặc
+      lỗi mạng/timeout -> raise (EtherscanFetchError / requests exception),
+      KHÔNG trả list rỗng giả làm "ví không có giao dịch".
     - Thiếu ETHERSCAN_API_KEY -> raise RuntimeError để caller biết rõ lý do.
+    - Lấy max_records giao dịch GẦN NHẤT (sort=desc).
     """
     api_key = os.getenv("ETHERSCAN_API_KEY")
     if not api_key:

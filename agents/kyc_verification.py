@@ -13,6 +13,20 @@ from core.state import AMLState
 OFAC_WALLET_FILE = os.path.join("data", "processed", "sample_ofac_wallet.txt")
 
 
+def _normalize_wallet(address: str) -> str:
+    """
+    Chuẩn hoá địa chỉ ví trước khi so khớp. Địa chỉ EVM (0x...) không phân
+    biệt hoa/thường — chữ hoa chỉ là checksum EIP-55 — nên đưa về lower(),
+    nếu không ví dạng checksum (0x28C6c0...) không bao giờ khớp danh sách
+    OFAC (lưu toàn chữ thường). Địa chỉ chain khác (vd BTC base58) phân biệt
+    hoa/thường nên giữ nguyên.
+    """
+    address = (address or "").strip()
+    if address[:2].lower() == "0x":
+        return address.lower()
+    return address
+
+
 def _load_ofac_wallets() -> set:
     """Load danh sách địa chỉ ví từ file (mỗi dòng một địa chỉ)."""
     wallets = set()
@@ -25,7 +39,7 @@ def _load_ofac_wallets() -> set:
             if line and not line.startswith("#"):
                 # Giả định mỗi dòng là một địa chỉ ví (hoặc tên, nhưng ta chỉ quan tâm địa chỉ ví)
                 # Ở đây ta lưu nguyên dòng, nhưng sẽ so khớp chính xác
-                wallets.add(line)
+                wallets.add(_normalize_wallet(line))
     return wallets
 
 
@@ -48,16 +62,17 @@ def verify_kyc(state: AMLState) -> AMLState:
     """
     assert_no_raw_pii(state)
 
-    wallet_from = state.get("wallet_from", "").strip()
-    wallet_to = state.get("wallet_to", "").strip()
+    wallet_from = (state.get("wallet_from") or "").strip()
+    wallet_to = (state.get("wallet_to") or "").strip()
 
     ofac_wallets = get_ofac_wallets()
 
-    # Kiểm tra wallet_from và wallet_to
+    # Kiểm tra wallet_from và wallet_to (so khớp sau chuẩn hoá, ghi lại địa
+    # chỉ đúng như input để chuyên viên đối chiếu).
     matched_wallet = None
-    if wallet_from in ofac_wallets:
+    if _normalize_wallet(wallet_from) in ofac_wallets:
         matched_wallet = wallet_from
-    elif wallet_to in ofac_wallets:
+    elif _normalize_wallet(wallet_to) in ofac_wallets:
         matched_wallet = wallet_to
 
     if matched_wallet:

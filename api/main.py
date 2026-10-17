@@ -24,6 +24,7 @@ Toàn bộ orchestration phải đi qua core.graph_builder.PipelineRun.
 
 import os
 import secrets
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -34,6 +35,7 @@ from pydantic import BaseModel, Field
 
 from core.graph_builder import PipelineRun
 from core.graph_provider import get_graph_provider
+from core.audit_logger import log_review_decision
 from core.privacy_layer import assert_no_raw_pii
 from agents.kyc_verification import verify_kyc
 from agents.transaction_classifier import analyze_transaction
@@ -365,7 +367,14 @@ class RawTransactionRequest(BaseModel):
     Privacy Layer để hashing.
     """
 
-    tx_hash: Optional[str] = None
+    # tx_hash được ghép vào tên file STR (agents/alert_report.py) và làm key
+    # RUNS/thread_id — chỉ cho phép chữ + số để chặn path traversal ("../").
+    tx_hash: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=128,
+        pattern=r"^[0-9a-zA-Z]+$",
+    )
 
     wallet_from: str
     wallet_to: str
@@ -572,6 +581,14 @@ def run_pipeline(
     _user: str = Depends(require_auth),
 ) -> PipelineRunResponse:
 
+    # Không cho ghi đè phiên đã có: ghi đè RUNS[tx_hash] sẽ xoá kết quả
+    # duyệt/STR của phiên cũ và trùng tên file STR.
+    if payload.tx_hash is not None and payload.tx_hash in RUNS:
+        raise HTTPException(
+            status_code=409,
+            detail=f"tx_hash={payload.tx_hash} đã tồn tại, không chạy lại.",
+        )
+
     state = _build_initial_state(payload)
 
     tx_hash = state["tx_hash"]
@@ -597,13 +614,12 @@ def run_pipeline(
             detail=f"Lỗi khi chạy AML pipeline: {exc}",
         )
 
-    # Privacy boundary check — kiểm tra SAU khi graph đã chạy xong node
-    # privacy_layer (entry point, xem core/graph_builder.py). Không thể gọi
+    # Privacy boundary check — kiểm tra SAU khi pipeline chạy. Không thể gọi
     # assert_no_raw_pii trên state THÔ vừa build từ request: tại điểm đó PII
     # gốc (fullname/id_number/account_number) chưa được băm — đó là đầu vào
-    # hợp lệ của Privacy Layer (core/privacy_layer.py::privacy_layer_node).
-    # Sau khi graph invoke, LangGraph đã loại các key PII gốc khỏi state và
-    # chỉ còn các field hashed_* (đã verify bằng script chẩn đoán).
+    # hợp lệ của Privacy Layer. PipelineRun.__init__ chạy
+    # core/privacy_layer.py::privacy_layer_node (name screening + băm) TRƯỚC
+    # graph.invoke(), nên result_state chỉ còn các field hashed_*.
     assert_no_raw_pii(result_state)
 
     # Lưu PipelineRun để request sau có thể resume.
@@ -668,7 +684,7 @@ class DecisionRequest(BaseModel):
 def submit_decision(
     tx_hash: str,
     payload: DecisionRequest,
-    _user: str = Depends(require_auth),
+    username: str = Depends(require_auth),
 ) -> Dict[str, Any]:
 
     run = _get_run_or_404(tx_hash)
@@ -689,8 +705,21 @@ def submit_decision(
             ),
         )
 
+    reviewed_at = datetime.now(timezone.utc).isoformat()
+
     updated_state = run.resume(
-        payload.approval_status
+        payload.approval_status,
+        reviewed_by=username,
+        reviewed_at=reviewed_at,
+    )
+
+    # Lưu vết ai duyệt / lúc nào (audit trail, không chứa PII khách hàng).
+    log_review_decision(
+        tx_hash=tx_hash,
+        approval_status=payload.approval_status,
+        reviewed_by=username,
+        reviewed_at=reviewed_at,
+        decision=updated_state.get("decision"),
     )
 
     return updated_state
@@ -719,6 +748,18 @@ def download_report(
     run = _get_run_or_404(tx_hash)
 
     state = run.state
+
+    # HITL: STR chỉ được tải sau khi chuyên viên đã APPROVE — dự thảo đang
+    # pending hoặc đã bị reject không được phát hành ra ngoài.
+    if state.get("approval_status") != "approved":
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Báo cáo STR chưa được duyệt "
+                f"(approval_status={state.get('approval_status')}). "
+                "Chỉ tải được sau khi chuyên viên APPROVE."
+            ),
+        )
 
     report_path = state.get("report_path")
 

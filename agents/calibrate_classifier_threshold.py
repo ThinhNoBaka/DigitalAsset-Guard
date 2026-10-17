@@ -20,10 +20,13 @@ Script:
     1. Load model đã train (models/xgboost_aml.pkl).
     2. Load test CSV, tự tìm cột nhãn (label/class/illicit/is_illicit).
     3. Chấm điểm classifier_score cho toàn bộ test set.
-    4. Dựng precision-recall curve, chọn ngưỡng THẤP NHẤT đạt được
-       target_recall (mặc định 0.9) -- tối ưu recall vì bỏ lọt 1 giao dịch
-       rửa tiền thật (false negative) nghiêm trọng hơn nhiều so với 1 báo
-       động giả (false positive) phải chuyên viên xem xét thêm.
+    4. Dựng precision-recall curve, trong các ngưỡng giữ được recall >=
+       target_recall (mặc định 0.9) chọn ngưỡng có PRECISION CAO NHẤT; hoà
+       precision thì lấy ngưỡng THẤP hơn (recall cao hơn, ít FN hơn) -- xem
+       select_threshold(). target_recall là sàn recall chấp nhận được: với
+       0.9 hệ thống CHẤP NHẬN bỏ lọt tới ~10% ví illicit trên test set để
+       giảm báo động giả. Muốn ít false negative hơn thì tăng
+       --target-recall, KHÔNG phải sửa logic chọn ngưỡng.
     5. Ghi models/classifier_threshold.json để decision_engine.py tự đọc.
 
 KHÔNG tự bịa ngưỡng nếu thiếu model/dữ liệu -- raise lỗi rõ ràng.
@@ -85,6 +88,48 @@ def _score_transactions(model, df: pd.DataFrame, label_col: str) -> np.ndarray:
     return model.predict_proba(X)[:, 1]
 
 
+def select_threshold(y_true, y_scores, target_recall: float) -> dict:
+    """
+    Chọn ngưỡng classifier_score: precision cao nhất trong các ngưỡng có
+    recall >= target_recall; hoà precision thì lấy ngưỡng thấp nhất.
+
+    Bản cũ ghi "chọn ngưỡng THẤP NHẤT" nhưng code lấy argmax(threshold) --
+    ngưỡng CAO NHẤT còn giữ được recall, tức đẩy recall sát sàn target và FN
+    tăng mà precision không chắc tốt hơn (precision không đơn điệu theo
+    ngưỡng). Lấy đúng ngưỡng thấp nhất theo nghĩa đen cũng không dùng được:
+    đó là điểm thấp nhất của test set (recall=1, gắn cờ gần như mọi ví).
+    """
+    y_true = np.asarray(y_true).astype(int)
+    y_scores = np.asarray(y_scores, dtype=float)
+
+    precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
+    # precision_recall_curve trả precision/recall có độ dài = len(thresholds)+1
+    # (điểm cuối cùng ứng với recall=0, không có threshold tương ứng).
+    # Cắt bớt để 3 mảng cùng độ dài.
+    precision = precision[:-1]
+    recall = recall[:-1]
+
+    eligible = np.where(recall >= target_recall)[0]
+
+    if len(eligible) == 0:
+        achievable_max_recall = float(recall.max()) if len(recall) else 0.0
+        raise ValueError(
+            f"Không có ngưỡng nào đạt target_recall={target_recall} trên tập "
+            f"test này. Recall tối đa đạt được: {achievable_max_recall:.4f}. "
+            "Hạ target_recall xuống hoặc cải thiện model trước khi calibrate."
+        )
+
+    best_precision = precision[eligible].max()
+    best_candidates = eligible[np.isclose(precision[eligible], best_precision)]
+    best_idx = best_candidates[np.argmin(thresholds[best_candidates])]
+
+    return {
+        "threshold": float(thresholds[best_idx]),
+        "precision": float(precision[best_idx]),
+        "recall": float(recall[best_idx]),
+    }
+
+
 def calibrate(test_csv_path: str, target_recall: float = 0.9) -> dict:
     if not MODEL_PATH.exists():
         raise FileNotFoundError(
@@ -111,35 +156,15 @@ def calibrate(test_csv_path: str, target_recall: float = 0.9) -> dict:
     model = joblib.load(MODEL_PATH)
     y_scores = _score_transactions(model, df, label_col)
 
-    precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
-    # precision_recall_curve trả precision/recall có độ dài = len(thresholds)+1
-    # (điểm cuối cùng ứng với threshold=1.0, không có threshold tương ứng).
-    # Cắt bớt để 3 mảng cùng độ dài, dễ chọn theo target_recall.
-    precision = precision[:-1]
-    recall = recall[:-1]
-
-    # Chọn ngưỡng THẤP NHẤT đạt được target_recall (ưu tiên không bỏ lọt).
-    # recall giảm dần khi threshold tăng -> lọc các điểm đạt target rồi lấy
-    # threshold lớn nhất trong số đó (tối đa hoá precision trong khi vẫn giữ
-    # đủ recall yêu cầu).
-    eligible = np.where(recall >= target_recall)[0]
-
-    if len(eligible) == 0:
-        achievable_max_recall = float(recall.max()) if len(recall) else 0.0
-        raise ValueError(
-            f"Không có ngưỡng nào đạt target_recall={target_recall} trên tập "
-            f"test này. Recall tối đa đạt được: {achievable_max_recall:.4f}. "
-            "Hạ target_recall xuống hoặc cải thiện model trước khi calibrate."
-        )
-
-    best_idx = eligible[np.argmax(thresholds[eligible])]
-    chosen_threshold = float(thresholds[best_idx])
-    chosen_precision = float(precision[best_idx])
-    chosen_recall = float(recall[best_idx])
+    chosen = select_threshold(y_true, y_scores, target_recall)
+    chosen_threshold = chosen["threshold"]
+    chosen_precision = chosen["precision"]
+    chosen_recall = chosen["recall"]
 
     result = {
         "threshold": round(chosen_threshold, 4),
         "target_recall": target_recall,
+        "selection_rule": "max precision s.t. recall >= target_recall (tie -> lowest threshold)",
         "achieved_recall": round(chosen_recall, 4),
         "achieved_precision": round(chosen_precision, 4),
         "calibrated_on_file": str(path),
@@ -158,7 +183,7 @@ def calibrate(test_csv_path: str, target_recall: float = 0.9) -> dict:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Calibrate ngưỡng classifier_score bằng precision-recall curve trên Elliptic test set."
+        description="Calibrate ngưỡng classifier_score bằng precision-recall curve trên test set Ethereum Fraud Detection."
     )
     parser.add_argument(
         "--test-csv",

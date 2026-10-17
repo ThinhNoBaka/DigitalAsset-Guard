@@ -15,6 +15,7 @@ IMPORTANT:
 """
 
 import os
+import re as _re
 from datetime import datetime
 from typing import Any
 
@@ -1667,8 +1668,12 @@ def generate_alert_report(
     # 15. SAVE REPORT
     # ========================================================
 
+    # tx_hash đã được api/main.py validate [0-9a-zA-Z]; lọc lại ở đây để
+    # caller khác (script/demo) cũng không thể ghép "../" vào đường dẫn file.
+    safe_tx_hash = _re.sub(r"[^0-9A-Za-z]", "_", str(tx_hash))
+
     filename = (
-        f"STR_REPORT_{tx_hash}.docx"
+        f"STR_REPORT_{safe_tx_hash}.docx"
     )
 
     report_path = os.path.join(

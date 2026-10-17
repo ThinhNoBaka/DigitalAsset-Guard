@@ -82,6 +82,28 @@ def log_step(
     _maybe_log_salt_rotation_notice()
 
 
+def log_review_decision(
+    tx_hash: Optional[str],
+    approval_status: str,
+    reviewed_by: Optional[str],
+    reviewed_at: Optional[str],
+    decision: Optional[str] = None,
+) -> None:
+    """
+    Ghi 1 dòng audit cho quyết định HITL (APPROVE/REJECT): ai duyệt, lúc nào.
+    reviewed_by là username chuyên viên nội bộ, không phải PII khách hàng.
+    """
+    _append_line({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "agent": "human_review",
+        "tx_hash": tx_hash,
+        "decision": decision,
+        "approval_status": approval_status,
+        "reviewed_by": reviewed_by,
+        "reviewed_at": reviewed_at,
+    })
+
+
 def _maybe_log_salt_rotation_notice() -> None:
     """Ghi 1 lần duy nhất/tiến trình dòng nhắc xoay salt định kỳ (mô tả vận hành)."""
     global _SALT_ROTATION_NOTICE_LOGGED

@@ -36,10 +36,14 @@ def mask_pii(raw_customer: dict, salt: str) -> dict:
     masked_customer = {}
 
     for key, value in raw_customer.items():
-        if key in PII_FIELDS:
-            masked_customer[f"hashed_{key}"] = _hash_value(value, salt)
-        else:
+        if key not in PII_FIELDS:
             masked_customer[key] = value
+
+    # Gán hashed_* SAU khi copy các key non-PII: state đầu vào (vd
+    # api/main.py::_build_initial_state) có sẵn placeholder hashed_*=None,
+    # nếu gán theo thứ tự key thì placeholder sẽ ghi đè lên hash vừa tính.
+    for key in PII_FIELDS & set(raw_customer.keys()):
+        masked_customer[f"hashed_{key}"] = _hash_value(raw_customer[key], salt)
 
     return masked_customer
 
@@ -115,4 +119,19 @@ def privacy_layer_node(raw_state: dict) -> dict:
     # Bước 3: chốt an toàn trước khi rời Privacy Layer.
     assert_no_raw_pii(state)
 
+    return state
+
+
+def pii_gate_node(state: dict) -> dict:
+    """
+    Node entry của LangGraph (core/graph_builder.py): CHỈ chốt
+    assert_no_raw_pii, không băm/so khớp tên gì nữa.
+
+    privacy_layer_node() phải chạy TRƯỚC graph.invoke() (trong
+    PipelineRun.__init__) vì AMLState không khai báo fullname/id_number/
+    account_number -- LangGraph bỏ các key không khai báo trước khi tới node
+    đầu tiên, nên nếu băm trong graph thì hashed_* luôn rỗng và name
+    screening không bao giờ có fullname để chạy.
+    """
+    assert_no_raw_pii(state)
     return state

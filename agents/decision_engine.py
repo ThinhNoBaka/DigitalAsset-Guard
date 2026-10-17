@@ -25,7 +25,7 @@ thành 1 con số xác suất tổng.
 Lý do mỗi rule dùng được ngay (không cần dữ liệu ghép cặp không tồn tại):
 
     - classifier_score >= θ  : θ calibrate bằng precision-recall curve trên
-      Elliptic (CÓ ground-truth thật) — xem
+      test set Ethereum Fraud Detection (Farrugia, CÓ ground-truth thật) — xem
       agents/calibrate_classifier_threshold.py, output models/classifier_threshold.json
     - hop_distance_to_blacklist <= N : đây là FACT hình học của đồ thị (số
       hop ngắn nhất tới ví đã biết là sanctioned), không cần nhãn illicit/
@@ -53,7 +53,7 @@ from core.privacy_layer import assert_no_raw_pii
 from core.state import AMLState
 
 # =============================================================================
-# NGƯỠNG CLASSIFIER (θ) — calibrate bằng dữ liệu thật (Elliptic PR curve)
+# NGƯỠNG CLASSIFIER (θ) — calibrate bằng dữ liệu thật (PR curve, Ethereum Fraud — Farrugia)
 # =============================================================================
 
 _THRESHOLD_PATH = MODELS_DIR / "classifier_threshold.json"
@@ -69,7 +69,7 @@ def _load_classifier_threshold() -> float:
     Trả về θ cho classifier_score (Rule 3 bên dưới).
 
     Ưu tiên đọc từ models/classifier_threshold.json (calibrate bằng
-    precision-recall curve trên Elliptic — xem
+    precision-recall curve trên test set Ethereum Fraud Detection — xem
     agents/calibrate_classifier_threshold.py). Nếu chưa có, fallback về
     hằng số mặc định CHƯA KIỂM CHỨNG và in cảnh báo rõ ràng — không âm thầm
     dùng số chưa calibrate mà không ai biết.
@@ -93,7 +93,7 @@ def _load_classifier_threshold() -> float:
         print(
             f"⚠️ Chưa có {_THRESHOLD_PATH} — chạy "
             "`python -m agents.calibrate_classifier_threshold --test-csv <path>` "
-            f"để calibrate θ từ Elliptic. Hiện đang dùng ngưỡng mặc định "
+            f"để calibrate θ từ test set Ethereum Fraud. Hiện đang dùng ngưỡng mặc định "
             f"CHƯA KIỂM CHỨNG ({_DEFAULT_CLASSIFIER_THRESHOLD})."
         )
 
@@ -153,36 +153,15 @@ def make_decision(state: AMLState) -> AMLState:
     # crash, nhưng KHÔNG dùng làm căn cứ quyết định.
     state["risk_assessment_score"] = None
 
-    # -------------------------------------------------------------------------
-    # [FIX 2026-08-08 — AUDIT ZERO-TX WALLET] Điều kiện kiểm tra ĐẦU TIÊN
-    # -------------------------------------------------------------------------
-    # Ví chưa từng có giao dịch on-chain (insufficient_data=True, do Transaction
-    # Assistant ghi từ DỮ LIỆU THÔ — 0 tx txlist + 0 tx tokentx) thì KHÔNG được
-    # dùng classifier_score để tự động REPORT/PASS: model chấm ~1.0 cho feature
-    # vector toàn 0 là đặc thù tập train Farrugia (ví illicit thường có ít hoạt
-    # động), KHÔNG phản ánh rủi ro thật của ví. BẮT BUỘC route REVIEW cho chuyên
-    # viên xác minh thủ công. Đặt TRƯỚC mọi rule dựa trên classifier_score /
-    # graph_score bên dưới — không REPORT, không PASS tự động.
-    if state.get("insufficient_data", False):
-        state["decision"] = "REVIEW"
-        state["case_status"] = "pending_review"
-        state["decision_reason"] = (
-            "Không đủ dữ liệu giao dịch on-chain để đánh giá rủi ro (ví chưa có "
-            "lịch sử Etherscan) — cần chuyên viên xác minh thủ công, KHÔNG dựa "
-            "vào classifier_score."
-        )
-        state["decision_evidence"] = [
-            "THIẾU DỮ LIỆU: ví chưa từng gửi/nhận ETH lẫn ERC20 trên Etherscan "
-            "(0 tx txlist + 0 tx tokentx) — classifier_score KHÔNG được dùng làm "
-            "căn cứ quyết định (model chấm ~1.0 cho vector toàn 0 là đặc thù tập "
-            "train, không phản ánh rủi ro thật). Cần chuyên viên xác minh thủ công."
-        ]
-        return state
+    insufficient_data = bool(state.get("insufficient_data", False))
 
-    evidence = []
-    decision = "PASS"
-    case_status = "auto_cleared"
-    reason = ""
+    # Thứ tự mức độ để lấy decision = mức CAO NHẤT trong các rule kích hoạt.
+    level_rank = {"PASS": 0, "REVIEW": 1, "REPORT": 2}
+
+    # Mỗi rule kích hoạt ghi (decision, evidence, reason). KHÔNG dùng chuỗi
+    # if/elif nữa: case vừa sanctions vừa structuring vừa classifier cao phải
+    # có ĐỦ evidence cho cả 3 trong STR, không chỉ rule đầu tiên khớp.
+    triggered = []
 
     graph_signal_report = hop_distance is not None and hop_distance <= GRAPH_HOP_REPORT_THRESHOLD
     classifier_signal_report = classifier_score >= classifier_threshold
@@ -195,84 +174,113 @@ def make_decision(state: AMLState) -> AMLState:
 
     # --- Rule 1: Sanctions exact match ---
     if is_sanction_match:
-        decision = "REPORT"
-        case_status = "pending_review"
-        evidence.append(
+        triggered.append((
+            "REPORT",
             f"Exact OFAC SDN match — wallet {sanction_result.get('matched_wallet', 'unknown')} "
-            f"(program: {sanction_result.get('program', 'N/A')})"
-        )
-        reason = "Sanctions exact match triggers mandatory reporting."
+            f"(program: {sanction_result.get('program', 'N/A')})",
+            "Sanctions exact match triggers mandatory reporting.",
+        ))
 
     # --- Rule 2: Structuring / smurfing (Aggregation Monitor) ---
     # Chỉ trigger khi structuring_detected là True (đã được Aggregation Monitor
     # đánh giá với dữ liệu off-chain thật). None (chưa đánh giá — thiếu dữ
-    # liệu) KHÔNG được coi là False: rơi qua các rule khác bình thường, và
-    # evidence bổ sung ở cuối sẽ ghi rõ structuring chưa được đánh giá cho
-    # case này.
-    elif structuring_detected is True:
-        decision = "REPORT"
-        case_status = "pending_review"
-        evidence.append(
+    # liệu) KHÔNG được coi là False: evidence bổ sung ở cuối sẽ ghi rõ
+    # structuring chưa được đánh giá cho case này.
+    if structuring_detected is True:
+        triggered.append((
+            "REPORT",
             "Phát hiện dấu hiệu chia nhỏ giao dịch (structuring): "
             f"cộng dồn 7 ngày = {state.get('aggregated_amount_7d') or 0:,.0f} VND, "
-            f"số giao dịch gần ngưỡng trong 30 ngày = {state.get('near_threshold_count_30d') or 0}"
-        )
-        reason = (
+            f"số giao dịch gần ngưỡng trong 30 ngày = {state.get('near_threshold_count_30d') or 0}",
             "Aggregation Monitor detected a structuring pattern: multiple "
             "sub-threshold transactions aggregating above the reporting "
-            "threshold within a short window."
-        )
+            "threshold within a short window.",
+        ))
+
+    # -------------------------------------------------------------------------
+    # [FIX 2026-08-08 — AUDIT ZERO-TX WALLET] Ví chưa từng có giao dịch on-chain
+    # -------------------------------------------------------------------------
+    # insufficient_data=True (Transaction Assistant ghi từ DỮ LIỆU THÔ — 0 tx
+    # txlist + 0 tx tokentx) CHỈ chặn các rule dựa trên classifier_score (Rule 3,
+    # Rule 5): model chấm ~1.0 cho feature vector toàn 0 là đặc thù tập train
+    # Farrugia, không phản ánh rủi ro thật. Sanctions / structuring / graph là
+    # fact độc lập với classifier nên VẪN được xét — ví mới gửi thẳng tới ví
+    # OFAC vẫn phải REPORT, không bị hạ xuống REVIEW. Nếu không rule nào khác
+    # đủ mạnh, case vẫn phải REVIEW (không PASS tự động).
+    if insufficient_data:
+        triggered.append((
+            "REVIEW",
+            "THIẾU DỮ LIỆU: ví chưa từng gửi/nhận ETH lẫn ERC20 trên Etherscan "
+            "(0 tx txlist + 0 tx tokentx) — classifier_score KHÔNG được dùng làm "
+            "căn cứ quyết định (model chấm ~1.0 cho vector toàn 0 là đặc thù tập "
+            "train, không phản ánh rủi ro thật). Cần chuyên viên xác minh thủ công.",
+            "Không đủ dữ liệu giao dịch on-chain để đánh giá rủi ro (ví chưa có "
+            "lịch sử Etherscan) — cần chuyên viên xác minh thủ công, KHÔNG dựa "
+            "vào classifier_score.",
+        ))
 
     # --- Rule 3: Classifier score vượt ngưỡng calibrate ---
-    elif classifier_signal_report:
-        decision = "REPORT"
-        case_status = "pending_review"
-        evidence.append(
+    if classifier_signal_report and not insufficient_data:
+        triggered.append((
+            "REPORT",
             f"Classifier score {classifier_score:.3f} vượt ngưỡng calibrate "
-            f"θ={classifier_threshold:.3f} (precision-recall curve trên Elliptic)"
-        )
-        reason = f"Classifier score ({classifier_score:.3f}) exceeds calibrated threshold ({classifier_threshold:.3f})."
+            f"θ={classifier_threshold:.3f} (precision-recall curve trên test set "
+            "Ethereum Fraud Detection — Farrugia)",
+            f"Classifier score ({classifier_score:.3f}) exceeds calibrated threshold ({classifier_threshold:.3f}).",
+        ))
 
     # --- Rule 4: Graph exposure — hop_distance tới ví sanctioned ---
-    elif graph_signal_report:
-        decision = "REPORT"
-        case_status = "pending_review"
-        evidence.append(
+    if graph_signal_report:
+        triggered.append((
+            "REPORT",
             f"Graph exposure: hop_distance_to_blacklist={hop_distance} "
-            f"<= ngưỡng {GRAPH_HOP_REPORT_THRESHOLD} (ví nằm gần ví đã bị sanction trên đồ thị)"
-        )
-        reason = f"Wallet is {hop_distance} hop(s) from a sanctioned wallet on the transaction graph."
+            f"<= ngưỡng {GRAPH_HOP_REPORT_THRESHOLD} (ví nằm gần ví đã bị sanction trên đồ thị)",
+            f"Wallet is {hop_distance} hop(s) from a sanctioned wallet on the transaction graph.",
+        ))
 
     # --- Rule 5: 2 tín hiệu "medium" cùng lúc (classifier + graph) ---
-    elif classifier_signal_medium and graph_signal_medium:
-        decision = "REVIEW"
-        case_status = "pending_review"
-        evidence.append(
+    if classifier_signal_medium and graph_signal_medium and not insufficient_data:
+        triggered.append((
+            "REVIEW",
             f"Tín hiệu vừa kết hợp: classifier_score={classifier_score:.3f} "
             f"(medium, ngưỡng tạm {classifier_medium_threshold:.3f}–{classifier_threshold:.3f}) "
             f"+ hop_distance_to_blacklist={hop_distance} (medium, {GRAPH_HOP_REPORT_THRESHOLD + 1}–{_GRAPH_MEDIUM_HOP_MAX} hop). "
-            "Ngưỡng medium là giả định tạm, chưa kiểm chứng bằng dữ liệu — cần review thủ công."
-        )
-        reason = (
+            "Ngưỡng medium là giả định tạm, chưa kiểm chứng bằng dữ liệu — cần review thủ công.",
             "Two independent medium-strength risk signals (classifier + graph "
-            "proximity) triggered simultaneously — routed to manual review."
-        )
+            "proximity) triggered simultaneously — routed to manual review.",
+        ))
 
+    # --- Rule 6: Tên khách hàng gần giống tên trong danh sách SDN ---
+    # name_similarity_warning (>= 85%, xem core/name_screening.py) là tín hiệu
+    # sanctions theo tên — không đủ để REPORT tự động (fuzzy có thể trùng tên
+    # người khác) nhưng KHÔNG được auto-clear: tối thiểu REVIEW.
+    if state.get("name_similarity_warning", False):
+        matched_name = state.get("name_similarity_matched_name")
+        triggered.append((
+            "REVIEW",
+            f"Fuzzy name similarity warning (score: {state.get('name_similarity_score') or 0.0:.2f}%"
+            + (f", gần giống tên SDN '{matched_name}'" if matched_name else "")
+            + ") — cần chuyên viên xác minh danh tính khách hàng với danh sách OFAC SDN.",
+            "Customer name closely matches an OFAC SDN entry — routed to manual review.",
+        ))
+
+    if triggered:
+        decision = max((t[0] for t in triggered), key=level_rank.__getitem__)
+        evidence = [t[1] for t in triggered]
+        # Lý do = lý do của (các) rule ở mức cao nhất, theo đúng thứ tự rule.
+        reason = " ".join(t[2] for t in triggered if t[0] == decision)
+        case_status = "pending_review"
     else:
-        # PASS
-        evidence.append(
+        decision = "PASS"
+        case_status = "auto_cleared"
+        evidence = [
             f"classifier_score={classifier_score:.3f} (< θ={classifier_threshold:.3f}), "
             f"hop_distance_to_blacklist={hop_distance if hop_distance is not None else 'N/A'} "
             f"(> {GRAPH_HOP_REPORT_THRESHOLD}), không có sanctions/structuring match."
-        )
+        ]
         reason = "No sufficient risk signals detected."
 
     # --- Evidence bổ sung mang tính thông tin, không ảnh hưởng quyết định ---
-
-    if state.get("name_similarity_warning", False):
-        evidence.append(
-            f"Fuzzy name similarity warning (score: {state.get('name_similarity_score', 0.0):.2f}%) - for information only"
-        )
 
     # Structuring CHƯA được đánh giá (không có dữ liệu off-chain Core Banking).
     # KHÔNG đồng nghĩa "đã kiểm tra sạch" — phải ghi rõ trong evidence để

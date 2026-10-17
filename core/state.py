@@ -205,6 +205,11 @@ class AMLState(TypedDict, total=False):
 
     # === Human-in-the-loop ===
     approval_status: Optional[str]            # "pending" | "approved" | "rejected"
+    reviewed_by: Optional[str]
+    # Username chuyên viên AML đã APPROVE/REJECT (tài khoản nội bộ, không phải
+    # PII khách hàng). Ghi bởi PipelineRun.resume() — api/main.py::submit_decision.
+    reviewed_at: Optional[str]
+    # Thời điểm duyệt, ISO 8601 UTC.
 
     # === Misc / Explainability ===
     top_features: Optional[List[Tuple[str, float]]]
